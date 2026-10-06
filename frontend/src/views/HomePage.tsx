@@ -2,7 +2,7 @@ import { AlbumGrid } from '@/components/library/AlbumGrid';
 import { useAlbums, useRandomTracks } from '@/hooks/useLibrary';
 
 export function HomePage() {
-  const { data: albums, isLoading: albumsLoading } = useAlbums('recent', 24);
+  const { data: albums, isLoading: albumsLoading } = useAlbums('newest', 24);
   const { data: tracks, isLoading: tracksLoading } = useRandomTracks(50);
   
   return (

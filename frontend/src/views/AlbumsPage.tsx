@@ -1,13 +1,13 @@
-'use client';
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Play } from 'lucide-react';
+import { ArrowLeft, Play, Disc } from 'lucide-react';
 import { useAlbums, useAlbumDetails } from '@/hooks/useLibrary';
 import { usePlayerStore } from '@/store/playerStore';
+import type { AlbumListType } from '@/api/library';
 
 export function AlbumsPage() {
-  const { data: albums, isLoading } = useAlbums('recent', 100);
+  const [sortType, setSortType] = useState<AlbumListType>('newest');
+  const { data: albums, isLoading } = useAlbums(sortType, 100);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
   
   const { data: albumDetails } = useAlbumDetails(selectedAlbumId);
@@ -118,46 +118,114 @@ export function AlbumsPage() {
   // Main albums grid
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold text-white mb-2">Альбомы</h1>
-        <p className="text-white/50">Ваша коллекция альбомов</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-white mb-2">Альбомы</h1>
+          <p className="text-white/50">Ваша коллекция альбомов</p>
+        </div>
+
+        {/* Sort pills */}
+        <div className="flex items-center gap-1.5 p-1 bg-white/5 border border-white/10 rounded-2xl self-start">
+          <button
+            onClick={() => setSortType('newest')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+              sortType === 'newest'
+                ? 'bg-blue-600 text-white'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Новые
+          </button>
+          <button
+            onClick={() => setSortType('alphabeticalByName')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+              sortType === 'alphabeticalByName'
+                ? 'bg-blue-600 text-white'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            По алфавиту
+          </button>
+          <button
+            onClick={() => setSortType('random')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+              sortType === 'random'
+                ? 'bg-blue-600 text-white'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Случайные
+          </button>
+          <button
+            onClick={() => setSortType('recent')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+              sortType === 'recent'
+                ? 'bg-blue-600 text-white'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Недавние
+          </button>
+        </div>
       </div>
       
-      <div 
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6"
-      >
-        {albums?.map((album) => (
-          <motion.div
-            key={album.id}
-            whileHover={{ scale: 1.02 }}
-            onClick={() => setSelectedAlbumId(album.id)}
-            className="group cursor-pointer"
-          >
-            <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/10 mb-4">
-              {album.coverArt && (
-                <img
-                  src={`/api/stream/cover/${album.coverArt}?size=300`}
-                  alt={album.name}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <div className="text-white text-sm">Открыть</div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="bg-white/[0.04] border border-white/[0.08] rounded-3xl p-4 animate-pulse">
+              <div className="aspect-square rounded-2xl bg-white/10 mb-4" />
+              <div className="space-y-2">
+                <div className="h-4 bg-white/10 rounded w-3/4" />
+                <div className="h-3 bg-white/10 rounded w-1/2" />
               </div>
             </div>
-            
-            <div>
-              <h3 className="text-white font-medium truncate">{album.name}</h3>
-              <p className="text-white/50 text-sm truncate">{album.artist}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      
-      {isLoading && (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-white/50 text-lg">Загрузка...</div>
+          ))}
+        </div>
+      ) : (!albums || albums.length === 0) ? (
+        <div className="flex flex-col items-center justify-center h-64 gap-3 text-white/40">
+          <Disc className="w-12 h-12 stroke-[1.5]" />
+          <p className="text-lg font-medium">Альбомы не найдены</p>
+        </div>
+      ) : (
+        <div 
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6"
+        >
+          {albums.map((album) => (
+            <motion.div
+              key={album.id}
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              onClick={() => setSelectedAlbumId(album.id)}
+              className="group relative bg-white/[0.04] border border-white/[0.08] rounded-3xl p-4 cursor-pointer hover:bg-white/[0.08] hover:border-white/[0.16] transition-colors duration-200 transform-gpu will-change-transform"
+            >
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5 mb-4">
+                {album.coverArt ? (
+                  <img
+                    src={`/api/stream/cover/${album.coverArt}?size=300`}
+                    alt={album.name}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-white/5 text-white/30">
+                    <Disc className="w-12 h-12" />
+                  </div>
+                )}
+                
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
+                  <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform">
+                    <Play className="w-5 h-5 fill-black ml-0.5" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <h3 className="text-white font-medium truncate">{album.name}</h3>
+                <p className="text-white/50 text-sm truncate">{album.artist}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       )}
     </div>

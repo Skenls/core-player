@@ -10,13 +10,13 @@ import type {
   SearchResult3,
 } from '@/types/subsonic';
 
-export type AlbumListType = 'recent' | 'frequent' | 'random' | 'newest' | 'starred';
+export type AlbumListType = 'recent' | 'frequent' | 'random' | 'newest' | 'starred' | 'alphabeticalByName';
 
 export const libraryApi = {
   /**
    * Get list of albums
    */
-  async getAlbums(type: AlbumListType = 'recent', size: number = 50): Promise<Album[]> {
+  async getAlbums(type: AlbumListType = 'newest', size: number = 50): Promise<Album[]> {
     const { data } = await axiosClient.get<{ albums: Album[] }>('/library/albums', {
       params: { type, size },
     });

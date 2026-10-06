@@ -32,13 +32,17 @@ class AddTrackRequest(BaseModel):
 
 @router.get("/albums")
 async def get_albums(
-    type: Literal["recent", "frequent", "random", "newest", "starred"] = "recent",
+    type: Literal["recent", "frequent", "random", "newest", "starred", "alphabeticalByName", "byYear", "byGenre"] = "newest",
     size: int = Query(default=50, le=500),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Get list of albums"""
     response = await client.get("getAlbumList2.view", type=type, size=size)
     albums = response.get("albumList2", {}).get("album", [])
+    if isinstance(albums, dict):
+        albums = [albums]
+    elif not isinstance(albums, list):
+        albums = []
     return {"albums": albums}
 
 

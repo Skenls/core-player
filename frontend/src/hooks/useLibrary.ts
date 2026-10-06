@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
 import type { AlbumListType } from '@/api/library';
 
-export function useAlbums(type: AlbumListType = 'recent', size: number = 50) {
+export function useAlbums(type: AlbumListType = 'newest', size: number = 50) {
   return useQuery({
     queryKey: ['albums', type, size],
     queryFn: () => api.library.getAlbums(type, size),
