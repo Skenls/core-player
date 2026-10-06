@@ -8,6 +8,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
+import { axiosClient } from '@/api/client';
 
 type SettingsTab = 'appearance' | 'audio' | 'users';
 
@@ -78,24 +79,46 @@ export function SettingsModal() {
     },
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setCustomBackgroundUrl(dataUrl);
-        setTempUrl(dataUrl);
+    try {
+      setIsUploadingBg(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await axiosClient.post<{ url: string }>('/stream/custom-background', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.url) {
+        setCustomBackgroundUrl(res.data.url);
+        setTempUrl(res.data.url);
+        setBackgroundMode('custom');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Failed to upload background to server, falling back to local:', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        if (dataUrl) {
+          setCustomBackgroundUrl(dataUrl);
+          setTempUrl(dataUrl);
+          setBackgroundMode('custom');
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingBg(false);
+    }
   };
 
   const handleSaveBackgroundUrl = () => {
     if (tempUrl.trim()) {
       setCustomBackgroundUrl(tempUrl.trim());
+      setBackgroundMode('custom');
     }
   };
 
@@ -248,12 +271,13 @@ export function SettingsModal() {
                         </button>
                         <button
                           type="button"
+                          disabled={isUploadingBg}
                           onClick={() => fileInputRef.current?.click()}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5"
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5"
                           title="Загрузить файл с компьютера"
                         >
                           <Upload className="w-4 h-4" />
-                          <span>Файл</span>
+                          <span>{isUploadingBg ? 'Загрузка...' : 'Файл'}</span>
                         </button>
                         <input
                           ref={fileInputRef}

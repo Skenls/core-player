@@ -132,9 +132,19 @@ export function NowPlayingView() {
     ? `/api/stream/cover/${currentTrack.coverArt}?size=600`
     : '/placeholder-album.png';
 
-  const bgUrl = (backgroundMode === 'custom' && customBackgroundUrl)
-    ? customBackgroundUrl
+  const [bgFailed, setBgFailed] = useState(false);
+
+  useEffect(() => {
+    setBgFailed(false);
+  }, [backgroundMode, customBackgroundUrl, currentTrack?.coverArt]);
+
+  const targetBgUrl = backgroundMode === 'custom'
+    ? (customBackgroundUrl || '/background.jpg')
     : coverUrl;
+
+  const activeBgUrl = bgFailed
+    ? (backgroundMode === 'custom' ? '/background.jpg' : coverUrl)
+    : targetBgUrl;
 
   return (
     <>
@@ -145,20 +155,26 @@ export function NowPlayingView() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-50 overflow-hidden bg-[#0a0c10] select-none"
+            className="fixed inset-0 z-50 overflow-hidden bg-[#0a0c10] select-none transform-gpu"
           >
             {/* Background view */}
             {nowPlayingBackground ? (
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <img
-                  key={bgUrl}
-                  src={bgUrl}
+                  key={activeBgUrl}
+                  src={activeBgUrl}
                   alt=""
                   className="w-full h-full object-cover scale-110"
                   style={{
                     filter: `blur(${backgroundBlur}px)`,
-                    transform: 'scale(1.12)',
-                    transition: 'filter 0.3s ease-out'
+                    transform: 'scale(1.12) translate3d(0, 0, 0)',
+                    transition: 'filter 0.3s ease-out',
+                    willChange: 'filter, transform',
+                  }}
+                  onError={() => {
+                    if (!bgFailed && activeBgUrl !== '/background.jpg') {
+                      setBgFailed(true);
+                    }
                   }}
                 />
                 {/* Darkening overlay controlled by backgroundDim slider */}

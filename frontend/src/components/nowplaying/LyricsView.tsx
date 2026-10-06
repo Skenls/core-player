@@ -34,10 +34,20 @@ export function LyricsView({ lyrics }: LyricsViewProps) {
     }, 3500);
   };
 
-  // Reset user scrolling state on unmount
+  // Reset user scrolling state on unmount & attach passive listeners
   useEffect(() => {
+    const el = containerRef.current;
+    if (el) {
+      el.addEventListener('wheel', handleUserInteraction, { passive: true });
+      el.addEventListener('touchmove', handleUserInteraction, { passive: true });
+    }
+
     return () => {
       if (userScrollTimeoutRef.current) clearTimeout(userScrollTimeoutRef.current);
+      if (el) {
+        el.removeEventListener('wheel', handleUserInteraction);
+        el.removeEventListener('touchmove', handleUserInteraction);
+      }
     };
   }, []);
 
@@ -178,7 +188,7 @@ export function LyricsView({ lyrics }: LyricsViewProps) {
                   ease: [0.25, 0.1, 0.25, 1],
                 }}
                 onClick={() => handleLineClick(index)}
-                className={`cursor-pointer transition-colors duration-200 group origin-left ${textStyle}`}
+                className={`cursor-pointer transition-colors duration-200 group origin-left transform-gpu will-change-transform ${textStyle}`}
               >
                 <span className="inline-block leading-snug">
                   {line.text?.trim() ? line.text : '♪'}

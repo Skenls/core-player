@@ -7,7 +7,7 @@ import { useUIStore } from '@/store/uiStore';
 
 export function DynamicBackground() {
   const { currentTrack } = usePlayerStore();
-  const { backgroundMode, customBackgroundUrl, backgroundBlur, backgroundDim } = useUIStore();
+  const { backgroundMode, customBackgroundUrl, backgroundBlur, backgroundDim, isNowPlayingOpen } = useUIStore();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
   useEffect(() => {
@@ -21,7 +21,12 @@ export function DynamicBackground() {
   }, [currentTrack, backgroundMode, customBackgroundUrl]);
   
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none">
+    <div
+      className="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none"
+      style={{
+        display: isNowPlayingOpen ? 'none' : 'block'
+      }}
+    >
       {/* Base dark gradient */}
       <div className="absolute inset-0 bg-[#0a0c10]" />
       
@@ -42,8 +47,9 @@ export function DynamicBackground() {
               className="w-full h-full object-cover scale-105"
               style={{
                 filter: `blur(${backgroundBlur}px)`,
-                transform: 'scale(1.08)',
-                transition: 'filter 0.2s ease-out'
+                transform: 'scale(1.08) translate3d(0, 0, 0)',
+                transition: 'filter 0.2s ease-out',
+                willChange: 'filter, transform'
               }}
               onError={(e) => {
                 // If custom background fails, fallback to default public background

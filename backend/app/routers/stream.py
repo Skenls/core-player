@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, Request, Query
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, Request, Query, UploadFile, File, HTTPException
+from fastapi.responses import StreamingResponse, FileResponse
+import os
+import time
 from app.dependencies import get_subsonic_client
 from app.subsonic_client import SubsonicClient
 
@@ -13,6 +15,36 @@ MIME_TYPES = {
     "flac": "audio/flac",
     "raw": "audio/mpeg"
 }
+
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+CUSTOM_BG_FILE = os.path.join(DATA_DIR, "custom_background.jpg")
+
+
+@router.post("/custom-background")
+async def upload_custom_background(
+    file: UploadFile = File(...)
+):
+    """Upload custom wallpaper image"""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    content = await file.read()
+    if len(content) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 25MB)")
+    with open(CUSTOM_BG_FILE, "wb") as f:
+        f.write(content)
+    return {"url": f"/api/stream/custom-background?t={int(time.time())}"}
+
+
+@router.get("/custom-background")
+async def get_custom_background():
+    """Get uploaded custom wallpaper image"""
+    if os.path.exists(CUSTOM_BG_FILE):
+        return FileResponse(
+            CUSTOM_BG_FILE,
+            media_type="image/jpeg",
+            headers={"Cache-Control": "public, max-age=86400"}
+        )
+    raise HTTPException(status_code=404, detail="No custom background uploaded")
 
 
 @router.get("/{track_id}")

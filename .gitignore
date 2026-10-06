@@ -26,3 +26,7 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Uploaded data
+backend/data/*
+!backend/data/.gitkeep
