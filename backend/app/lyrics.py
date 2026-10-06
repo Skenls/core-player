@@ -3,6 +3,69 @@ import re
 from typing import Optional
 
 
+def extract_artist_candidates(artist_raw: str) -> list[str]:
+    """
+    Extract search candidates from artist metadata string.
+    Cleans:
+    - Bullet/pipe/slash/semicolon metadata separators: 'Kai Angel • Ицков Дмитрий Олегович' -> 'Kai Angel'
+    - Multiple artists: 'Kai Angel, 9mice' -> ['Kai Angel, 9mice', 'Kai Angel & 9mice', 'Kai Angel', '9mice']
+    - Parentheses and feats: 'Artist (feat. Other)' -> 'Artist'
+    """
+    candidates: list[str] = []
+    
+    def add_candidate(val: str):
+        c = val.strip()
+        if c and c not in candidates:
+            candidates.append(c)
+
+    # 1. Primary artist before bullet, dot, pipe, semicolon, or slash
+    primary = re.split(r'[•·|;/]', artist_raw)[0].strip()
+    if primary:
+        add_candidate(primary)
+
+    # 2. Raw artist
+    add_candidate(artist_raw)
+
+    # 3. Strip parentheses / brackets from primary
+    no_parens = re.sub(r'[\(\[].*?[\)\]]', '', primary).strip()
+    if no_parens:
+        add_candidate(no_parens)
+
+    # 4. If primary has commas or &, expand variations
+    for c in list(candidates):
+        if ',' in c:
+            with_amp = re.sub(r'\s*,\s*', ' & ', c)
+            add_candidate(with_amp)
+            parts = [p.strip() for p in c.split(',') if p.strip()]
+            for p in parts:
+                add_candidate(p)
+        if ' & ' in c:
+            first = c.split(' & ')[0].strip()
+            add_candidate(first)
+        if ' feat. ' in c.lower() or ' ft. ' in c.lower():
+            feat_clean = re.split(r'\s+(?:feat\.|ft\.|feat|ft)\s+', c, flags=re.IGNORECASE)[0].strip()
+            add_candidate(feat_clean)
+
+    return candidates
+
+
+def extract_title_candidates(title_raw: str) -> list[str]:
+    """Extract search candidates from title metadata."""
+    candidates: list[str] = [title_raw.strip()]
+    
+    # Strip (feat. ...), [feat. ...], etc.
+    no_feat = re.sub(r'\s*[\(\[](?:feat|ft|prod|official).*?[\)\]]', '', title_raw, flags=re.IGNORECASE).strip()
+    if no_feat and no_feat not in candidates:
+        candidates.append(no_feat)
+
+    # Strip all parenthetical content
+    no_parens = re.sub(r'\s*[\(\[].*?[\)\]]', '', title_raw).strip()
+    if no_parens and no_parens not in candidates:
+        candidates.append(no_parens)
+        
+    return candidates
+
+
 async def fetch_lrclib_lyrics(
     httpx_client: httpx.AsyncClient,
     track_name: str,
@@ -11,26 +74,28 @@ async def fetch_lrclib_lyrics(
     duration: Optional[int] = None
 ) -> Optional[dict]:
     """
-    Fetch synchronized lyrics from LRCLIB API with smart fallback search.
+    Fetch synchronized lyrics from LRCLIB API with smart fallback search across artist/title variations.
     Returns: {plainLyrics: str, syncedLyrics: str} or None
     """
     plain_candidate = None
+    artist_candidates = extract_artist_candidates(artist_name)
+    title_candidates = extract_title_candidates(track_name)
 
-    # 1. Try exact get with all provided params
-    params = {
-        "track_name": track_name,
-        "artist_name": artist_name
-    }
+    primary_artist = artist_candidates[0]
+    primary_title = title_candidates[0]
+
+    # 1. Try exact get with primary artist & title
+    params = {"track_name": primary_title, "artist_name": primary_artist}
     if album_name:
         params["album_name"] = album_name
     if duration:
         params["duration"] = duration
-    
+
     try:
         response = await httpx_client.get(
             "https://lrclib.net/api/get",
             params=params,
-            timeout=5.0
+            timeout=4.0
         )
         if response.status_code == 200:
             data = response.json()
@@ -41,72 +106,50 @@ async def fetch_lrclib_lyrics(
     except Exception:
         pass
 
-    # 2. Try exact get without album/duration constraints
-    if album_name or duration:
-        try:
-            response = await httpx_client.get(
-                "https://lrclib.net/api/get",
-                params={"track_name": track_name, "artist_name": artist_name},
-                timeout=5.0
-            )
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("syncedLyrics"):
-                    return data
-                if data.get("plainLyrics") and not plain_candidate:
-                    plain_candidate = data
-        except Exception:
-            pass
-
-    # 3. Try search endpoint with track_name and artist_name
-    try:
-        search_res = await httpx_client.get(
-            "https://lrclib.net/api/search",
-            params={"track_name": track_name, "artist_name": artist_name},
-            timeout=5.0
-        )
-        if search_res.status_code == 200:
-            items = search_res.json()
-            if isinstance(items, list):
-                # Look for synced lyrics first
-                for item in items:
-                    if item.get("syncedLyrics"):
-                        return item
-                if not plain_candidate and items:
-                    for item in items:
-                        if item.get("plainLyrics"):
-                            plain_candidate = item
-                            break
-    except Exception:
-        pass
-
-    # 4. Try general query search `q={artist} {track}`
-    clean_title = re.sub(r'[\(\[].*?[\)\]]', '', track_name).strip()
-    clean_artist = re.sub(r'[\(\[].*?[\)\]]', '', artist_name).strip()
-    queries = [f"{artist_name} {track_name}"]
-    if clean_title != track_name or clean_artist != artist_name:
-        queries.append(f"{clean_artist} {clean_title}")
-
-    for q in queries:
-        try:
-            search_res = await httpx_client.get(
-                "https://lrclib.net/api/search",
-                params={"q": q},
-                timeout=5.0
-            )
-            if search_res.status_code == 200:
-                items = search_res.json()
-                if isinstance(items, list):
-                    for item in items:
-                        if item.get("syncedLyrics"):
-                            return item
-                    if not plain_candidate and items:
+    # 2. Try searching variations on LRCLIB
+    for art in artist_candidates:
+        for tit in title_candidates:
+            # 2a. Param search: track_name & artist_name
+            try:
+                search_res = await httpx_client.get(
+                    "https://lrclib.net/api/search",
+                    params={"track_name": tit, "artist_name": art},
+                    timeout=4.0
+                )
+                if search_res.status_code == 200:
+                    items = search_res.json()
+                    if isinstance(items, list):
                         for item in items:
-                            if item.get("plainLyrics"):
-                                plain_candidate = item
-                                break
-        except Exception:
-            pass
+                            if item.get("syncedLyrics"):
+                                return item
+                        if not plain_candidate and items:
+                            for item in items:
+                                if item.get("plainLyrics"):
+                                    plain_candidate = item
+                                    break
+            except Exception:
+                pass
+
+            # 2b. General query search: q="{art} {tit}"
+            try:
+                search_res = await httpx_client.get(
+                    "https://lrclib.net/api/search",
+                    params={"q": f"{art} {tit}"},
+                    timeout=4.0
+                )
+                if search_res.status_code == 200:
+                    items = search_res.json()
+                    if isinstance(items, list):
+                        for item in items:
+                            if item.get("syncedLyrics"):
+                                return item
+                        if not plain_candidate and items:
+                            for item in items:
+                                if item.get("plainLyrics"):
+                                    plain_candidate = item
+                                    break
+            except Exception:
+                pass
 
     return plain_candidate
 
