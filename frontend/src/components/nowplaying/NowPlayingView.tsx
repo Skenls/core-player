@@ -23,7 +23,7 @@ import { api } from '@/api';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 
 export function NowPlayingView() {
-  const { isNowPlayingOpen, closeNowPlaying } = useUIStore();
+  const { isNowPlayingOpen, closeNowPlaying, nowPlayingBackground } = useUIStore();
   const { 
     currentTrack, 
     isPlaying, 
@@ -132,14 +132,16 @@ export function NowPlayingView() {
             className="fixed inset-0 z-50 overflow-hidden bg-[#121316] select-none"
           >
             {/* Opaque blurred backdrop */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <img
-                src={coverUrl}
-                alt=""
-                className="w-full h-full object-cover scale-125 blur-[100px] opacity-25 brightness-50"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#121316]/90 via-[#121316]/75 to-[#121316]/95" />
-            </div>
+            {nowPlayingBackground && (
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <img
+                  src={coverUrl}
+                  alt=""
+                  className="w-full h-full object-cover scale-125 blur-[100px] opacity-25 brightness-50"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#121316]/90 via-[#121316]/75 to-[#121316]/95" />
+              </div>
+            )}
             
             <div className="relative z-10 h-full flex flex-col">
               {/* Header with collapse chevron */}

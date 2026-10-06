@@ -24,7 +24,9 @@ export function SettingsModal() {
     setCustomBackgroundUrl,
     setBackgroundBlur,
     setBackgroundDim,
-    setAudioCodec
+    setAudioCodec,
+    nowPlayingBackground,
+    setNowPlayingBackground
   } = useUIStore();
   
   const { user } = useSessionStore();
@@ -313,6 +315,29 @@ export function SettingsModal() {
                       <span>Баланс (50%)</span>
                       <span>Темнее (90%)</span>
                     </div>
+                  </div>
+
+                  {/* Fullscreen Card Background Toggle */}
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div>
+                      <div className="text-sm font-medium text-white">Фон в карточке трека</div>
+                      <div className="text-xs text-white/50">Размытая обложка трека на заднем плане полноэкранного плеера</div>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={nowPlayingBackground}
+                      onClick={() => setNowPlayingBackground(!nowPlayingBackground)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                        nowPlayingBackground ? 'bg-blue-600' : 'bg-white/20'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          nowPlayingBackground ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
               )}

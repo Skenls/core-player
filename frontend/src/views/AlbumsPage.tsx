@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Play } from 'lucide-react';
 import { useAlbums, useAlbumDetails } from '@/hooks/useLibrary';
 import { usePlayerStore } from '@/store/playerStore';
-import { useUIStore } from '@/store/uiStore';
 
 export function AlbumsPage() {
   const { data: albums, isLoading } = useAlbums('recent', 100);
@@ -13,13 +12,11 @@ export function AlbumsPage() {
   
   const { data: albumDetails } = useAlbumDetails(selectedAlbumId);
   const { setQueue } = usePlayerStore();
-  const { openNowPlaying } = useUIStore();
   
   const handlePlayAlbum = () => {
     if (albumDetails?.song && albumDetails.song.length > 0) {
       setQueue(albumDetails.song, 0);
       usePlayerStore.getState().play();
-      openNowPlaying();
     }
   };
   
@@ -27,7 +24,6 @@ export function AlbumsPage() {
     if (albumDetails?.song) {
       setQueue(albumDetails.song, index);
       usePlayerStore.getState().play();
-      openNowPlaying();
     }
   };
   

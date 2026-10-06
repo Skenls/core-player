@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { Play, Heart, ListPlus } from 'lucide-react';
 import { useState } from 'react';
-import { useUIStore } from '@/store/uiStore';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { AddToPlaylistModal } from '@/components/modals/AddToPlaylistModal';
 import type { Track } from '@/types/subsonic';
@@ -16,7 +15,6 @@ interface TrackCardProps {
 export function TrackCard({ track, onPlay }: TrackCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
-  const { openNowPlaying } = useUIStore();
   
   const { data: favoriteIds } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
@@ -27,8 +25,7 @@ export function TrackCard({ track, onPlay }: TrackCardProps) {
     : '/placeholder-album.png';
   
   const handleClick = () => {
-    onPlay(); // Start playing
-    setTimeout(() => openNowPlaying(), 100); // Open full screen view
+    onPlay(); // Start playing without opening full screen card
   };
   
   return (

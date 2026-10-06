@@ -23,6 +23,7 @@ interface UIState {
   backgroundBlur: number;
   backgroundDim: number;
   audioCodec: AudioCodec;
+  nowPlayingBackground: boolean;
   
   // Actions
   setActiveTab: (tab: ActiveTab) => void;
@@ -41,6 +42,7 @@ interface UIState {
   setBackgroundBlur: (blur: number) => void;
   setBackgroundDim: (dim: number) => void;
   setAudioCodec: (codec: AudioCodec) => void;
+  setNowPlayingBackground: (enabled: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -57,6 +59,7 @@ export const useUIStore = create<UIState>()(
       backgroundBlur: 24,
       backgroundDim: 40,
       audioCodec: 'mp3',
+      nowPlayingBackground: true,
       
       setActiveTab: (tab) => set({ activeTab: tab }),
       
@@ -74,7 +77,8 @@ export const useUIStore = create<UIState>()(
       setCustomBackgroundUrl: (url) => set({ customBackgroundUrl: url }),
       setBackgroundBlur: (blur) => set({ backgroundBlur: blur }),
       setBackgroundDim: (dim) => set({ backgroundDim: dim }),
-      setAudioCodec: (codec) => set({ audioCodec: codec })
+      setAudioCodec: (codec) => set({ audioCodec: codec }),
+      setNowPlayingBackground: (enabled) => set({ nowPlayingBackground: enabled })
     }),
     {
       name: 'core-ui-settings',
@@ -84,6 +88,7 @@ export const useUIStore = create<UIState>()(
         backgroundBlur: state.backgroundBlur,
         backgroundDim: state.backgroundDim,
         audioCodec: state.audioCodec,
+        nowPlayingBackground: state.nowPlayingBackground,
         isSidebarOpen: state.isSidebarOpen
       })
     }
