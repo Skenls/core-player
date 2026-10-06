@@ -98,15 +98,15 @@ export function PlayerBar() {
         <div
           ref={progressBarRef}
           onMouseDown={handleProgressMouseDown}
-          className="relative h-1 bg-white/10 cursor-pointer group"
+          className="relative h-1.5 bg-white/15 hover:bg-white/25 cursor-pointer group transition-all"
         >
-          <motion.div
-            className="absolute left-0 top-0 h-full bg-gradient-to-r from-blue-500 to-purple-500"
+          <div
+            className="absolute left-0 top-0 h-full bg-white rounded-r-full"
             style={{ width: `${progress}%` }}
           />
-          <motion.div
-            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-            style={{ left: `${progress}%`, x: '-50%' }}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg pointer-events-none"
+            style={{ left: `${progress}%` }}
           />
         </div>
         
