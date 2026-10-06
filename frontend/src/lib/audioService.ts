@@ -18,8 +18,13 @@ class AudioService {
 
   async play(): Promise<void> {
     try {
+      if (!this.audio.src) return;
       await this.audio.play();
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        // Safe user-abort during track switch or unmount
+        return;
+      }
       console.error('Autoplay failed:', error);
       // Sync state back to store
       const { usePlayerStore } = await import('@/store/playerStore');
@@ -41,12 +46,18 @@ class AudioService {
   }
 
   setSrc(src: string): void {
-    this.audio.src = src;
+    if (src) {
+      this.audio.src = src;
+    } else {
+      this.audio.removeAttribute('src');
+      this.audio.load();
+    }
   }
 
   destroy(): void {
     this.audio.pause();
-    this.audio.src = '';
+    this.audio.removeAttribute('src');
+    this.audio.load();
   }
 }
 

@@ -54,7 +54,12 @@ export function NowPlayingView() {
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
+  const [bgFailed, setBgFailed] = useState(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setBgFailed(false);
+  }, [backgroundMode, customBackgroundUrl, currentTrack?.coverArt]);
   
   const { data: favoriteIds } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
@@ -126,17 +131,9 @@ export function NowPlayingView() {
     };
   }, [isDragging, dragTime, duration, seek]);
   
-  if (!currentTrack) return null;
-  
-  const coverUrl = currentTrack.coverArt
+  const coverUrl = currentTrack?.coverArt
     ? `/api/stream/cover/${currentTrack.coverArt}?size=600`
     : '/placeholder-album.png';
-
-  const [bgFailed, setBgFailed] = useState(false);
-
-  useEffect(() => {
-    setBgFailed(false);
-  }, [backgroundMode, customBackgroundUrl, currentTrack?.coverArt]);
 
   const targetBgUrl = backgroundMode === 'custom'
     ? (customBackgroundUrl || '/background.jpg')
@@ -149,7 +146,7 @@ export function NowPlayingView() {
   return (
     <>
       <AnimatePresence>
-        {isNowPlayingOpen && (
+        {isNowPlayingOpen && currentTrack && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}

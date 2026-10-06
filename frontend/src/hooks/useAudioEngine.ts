@@ -41,6 +41,8 @@ export function useAudioEngine() {
     };
     
     const handleError = (e: Event) => {
+      const audioEl = audioService.getAudio();
+      if (!audioEl.src || audioEl.src === window.location.href) return;
       console.error('Audio error:', e);
       usePlayerStore.getState().pause();
     };
