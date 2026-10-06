@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { audioService } from '@/lib/audioService';
+import { useUIStore } from '@/store/uiStore';
 import type { Track } from '@/types/subsonic';
 import type { RepeatMode } from '@/types/player';
 
@@ -20,6 +21,7 @@ interface PlayerState {
   seekRequestedTime: number | null;
   
   setCurrentTrack: (track: Track) => void;
+  reloadCodec: () => void;
   play: () => void;
   pause: () => void;
   togglePlayPause: () => void;
@@ -57,7 +59,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   
   setCurrentTrack: (track) => {
     set({ currentTrack: track });
-    audioService.setSrc(`/api/stream/${track.id}`);
+    const { audioCodec } = useUIStore.getState();
+    const codecParam = audioCodec && audioCodec !== 'raw' ? `?format=${audioCodec}` : '';
+    audioService.setSrc(`/api/stream/${track.id}${codecParam}`);
+  },
+
+  reloadCodec: () => {
+    const { currentTrack, currentTime, isPlaying } = get();
+    if (!currentTrack) return;
+    const { audioCodec } = useUIStore.getState();
+    const codecParam = audioCodec && audioCodec !== 'raw' ? `?format=${audioCodec}` : '';
+    audioService.setSrc(`/api/stream/${currentTrack.id}${codecParam}`);
+    audioService.seek(currentTime);
+    if (isPlaying) {
+      audioService.play().catch(() => {});
+    }
   },
   
   play: () => {

@@ -24,9 +24,29 @@ class Base(DeclarativeBase):
 
 
 async def init_db():
-    """Initialize database tables"""
+    """Initialize database tables and bootstrap initial admin user if none exist"""
+    # Import models so Base.metadata knows about them
+    import app.models as models  # noqa
+    
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Check if any user exists
+    from app.models import User
+    from app.auth import hash_password
+    from sqlalchemy import select
+    
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).limit(1))
+        existing_user = result.scalar_one_or_none()
+        if not existing_user:
+            admin_user = User(
+                username=settings.initial_admin_username,
+                password_hash=hash_password(settings.initial_admin_password),
+                role="admin"
+            )
+            session.add(admin_user)
+            await session.commit()
 
 
 async def get_db() -> AsyncSession:

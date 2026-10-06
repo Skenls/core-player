@@ -6,13 +6,12 @@ import { ArrowLeft, Play } from 'lucide-react';
 import { useAlbums, useAlbumDetails } from '@/hooks/useLibrary';
 import { usePlayerStore } from '@/store/playerStore';
 import { useUIStore } from '@/store/uiStore';
-import { AlbumGrid } from '@/components/library/AlbumGrid';
 
 export function AlbumsPage() {
   const { data: albums, isLoading } = useAlbums('recent', 100);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
   
-  const { data: albumDetails, isLoading: isLoadingDetails } = useAlbumDetails(selectedAlbumId);
+  const { data: albumDetails } = useAlbumDetails(selectedAlbumId);
   const { setQueue } = usePlayerStore();
   const { openNowPlaying } = useUIStore();
   

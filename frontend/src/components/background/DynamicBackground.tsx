@@ -7,12 +7,12 @@ import { useUIStore } from '@/store/uiStore';
 
 export function DynamicBackground() {
   const { currentTrack } = usePlayerStore();
-  const { backgroundMode, customBackgroundUrl } = useUIStore();
+  const { backgroundMode, customBackgroundUrl, backgroundBlur, backgroundDim } = useUIStore();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
   useEffect(() => {
     if (backgroundMode === 'custom') {
-      setImageUrl(customBackgroundUrl);
+      setImageUrl(customBackgroundUrl || '/background.jpg');
     } else if (currentTrack?.coverArt) {
       setImageUrl(`/api/stream/cover/${currentTrack.coverArt}?size=512`);
     } else {
@@ -21,57 +21,57 @@ export function DynamicBackground() {
   }, [currentTrack, backgroundMode, customBackgroundUrl]);
   
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#05070C] via-[#0A0D12] to-[#0F131C]" />
+    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none">
+      {/* Base dark gradient */}
+      <div className="absolute inset-0 bg-[#0a0c10]" />
       
-      {/* Dynamic album art background */}
+      {/* Background image container */}
       <AnimatePresence mode="wait">
         {imageUrl && (
           <motion.div
             key={imageUrl}
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1.05,
-            }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ 
-              duration: 1.2,
-              ease: [0.43, 0.13, 0.23, 0.96]
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
             className="absolute inset-0"
           >
-            <motion.div
-              animate={{
-                scale: [1.05, 1.08, 1.05],
+            <img
+              src={imageUrl}
+              alt=""
+              className="w-full h-full object-cover scale-105"
+              style={{
+                filter: `blur(${backgroundBlur}px)`,
+                transform: 'scale(1.08)',
+                transition: 'filter 0.2s ease-out'
               }}
-              transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="w-full h-full"
-            >
-              <img
-                src={imageUrl}
-                alt=""
-                className="w-full h-full object-cover blur-[120px] opacity-20"
-                onError={(e) => {
+              onError={(e) => {
+                // If custom background fails, fallback to default public background
+                if (backgroundMode === 'custom' && imageUrl !== '/background.jpg') {
+                  setImageUrl('/background.jpg');
+                } else {
                   e.currentTarget.style.display = 'none';
-                }}
-              />
-            </motion.div>
+                }
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
       
-      {/* Vignette overlay */}
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-black/20 to-black/60" />
-      
-      {/* Noise texture */}
+      {/* Darkening / Dim overlay */}
       <div 
-        className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
+        className="absolute inset-0 transition-colors duration-200"
+        style={{
+          backgroundColor: `rgba(0, 0, 0, ${backgroundDim / 100})`
+        }}
+      />
+      
+      {/* Subtle vignette */}
+      <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/20 to-black/60 pointer-events-none" />
+      
+      {/* Noise texture overlay */}
+      <div 
+        className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}

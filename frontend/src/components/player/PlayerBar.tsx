@@ -1,10 +1,12 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, SkipBack, SkipForward, Heart, Repeat, Repeat1 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Play, Pause, SkipBack, SkipForward, Heart, Repeat, Repeat1, ListPlus } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
 import { useUIStore } from '@/store/uiStore';
+import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
+import { AddToPlaylistModal } from '@/components/modals/AddToPlaylistModal';
 
 export function PlayerBar() {
   const {
@@ -24,8 +26,12 @@ export function PlayerBar() {
   
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  
+  const { data: favoriteIds } = useFavoriteIds();
+  const toggleFavorite = useToggleFavorite();
+  const isFavorite = currentTrack ? favoriteIds?.tracks.includes(currentTrack.id) : false;
   
   const displayTime = isDragging ? dragTime : currentTime;
   const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
@@ -136,14 +142,24 @@ export function PlayerBar() {
               
               {/* Favorite button */}
               <button
-                onClick={() => setIsFavorite(!isFavorite)}
+                onClick={() => toggleFavorite.mutate({ id: currentTrack.id, type: 'track' })}
                 className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                title={isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
               >
                 <Heart 
                   className={`w-5 h-5 transition-colors ${
                     isFavorite ? 'fill-red-500 text-red-500' : 'text-white/50'
                   }`}
                 />
+              </button>
+
+              {/* Add to Playlist button */}
+              <button
+                onClick={() => setIsPlaylistModalOpen(true)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 text-white/50 hover:text-white"
+                title="Добавить в плейлист"
+              >
+                <ListPlus className="w-5 h-5" />
               </button>
             </div>
             
@@ -209,6 +225,12 @@ export function PlayerBar() {
           </div>
         </div>
       </div>
+
+      <AddToPlaylistModal
+        isOpen={isPlaylistModalOpen}
+        onClose={() => setIsPlaylistModalOpen(false)}
+        track={currentTrack}
+      />
     </motion.div>
   );
 }

@@ -1,21 +1,29 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import StreamingResponse
-from app.dependencies import get_subsonic_client, get_httpx_client
+from app.dependencies import get_subsonic_client
 from app.subsonic_client import SubsonicClient
-import httpx
 
 
 router = APIRouter(prefix="/stream", tags=["stream"])
+
+MIME_TYPES = {
+    "mp3": "audio/mpeg",
+    "opus": "audio/ogg",
+    "ogg": "audio/ogg",
+    "flac": "audio/flac",
+    "raw": "audio/mpeg"
+}
 
 
 @router.get("/{track_id}")
 async def stream_audio(
     track_id: str,
     request: Request,
+    format: str | None = Query(default=None),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """
-    Stream audio with HTTP Range request support for seeking
+    Stream audio with optional transcoding format and HTTP Range support
     """
     # Get Range header from client
     range_header = request.headers.get("range")
@@ -24,16 +32,23 @@ async def stream_audio(
     if range_header:
         headers["Range"] = range_header
     
+    params = {"id": track_id}
+    if format and format != "raw":
+        params["format"] = format
+    
     # Get streaming response from Navidrome
     navidrome_response = await client.stream_raw(
         "stream.view",
         headers=headers,
-        id=track_id
+        **params
     )
+    
+    default_mime = MIME_TYPES.get(format or "mp3", "audio/mpeg")
+    content_type = navidrome_response.headers.get("content-type") or default_mime
     
     # Build response headers
     response_headers = {
-        "Content-Type": navidrome_response.headers.get("content-type", "audio/mpeg"),
+        "Content-Type": content_type,
         "Accept-Ranges": "bytes"
     }
     

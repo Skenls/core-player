@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, library, stream, lyrics
+from app.routers import auth, library, stream, lyrics, admin
 
 
 @asynccontextmanager
@@ -57,6 +57,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 app.include_router(library.router, prefix="/api")
 app.include_router(stream.router, prefix="/api")
 app.include_router(lyrics.router, prefix="/api")

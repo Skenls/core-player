@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useEffect } from 'react';
 import { useSessionStore } from '@/store/sessionStore';
 import { api } from '@/api';
@@ -12,6 +13,7 @@ function AppContent() {
   const { isAuthenticated, isLoading, setUser, setLoading } = useSessionStore();
   
   useAudioEngine();
+  useKeyboardShortcuts();
   
   useEffect(() => {
     api.auth.me().then((user) => {

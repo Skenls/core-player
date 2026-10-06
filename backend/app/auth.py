@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 from app.config import settings
 from app.models import Session
@@ -8,8 +9,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 # Initialize Fernet cipher
 cipher = Fernet(settings.encryption_key.encode() if len(settings.encryption_key) == 44 else Fernet.generate_key())
+
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain password against a bcrypt hash"""
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def generate_salt() -> str:
@@ -32,37 +45,17 @@ def decrypt_value(encrypted: str) -> str:
     return cipher.decrypt(encrypted.encode()).decode()
 
 
-async def create_session(
-    db: AsyncSession,
-    navidrome_url: str,
-    username: str,
-    password: str,
-) -> Session:
+async def create_session(db: AsyncSession, user_id: str) -> Session:
     """
-    Create a new session with encrypted credentials
+    Create a new session for a user
     """
-    # Generate salt and token
-    salt = generate_salt()
-    token = generate_subsonic_token(password, salt)
-    
-    # Encrypt sensitive data
-    encrypted_url = encrypt_value(navidrome_url)
-    encrypted_username = encrypt_value(username)
-    
-    # Create session
     session = Session(
-        user_id=username,  # Use username as user_id
-        navidrome_url=encrypted_url,
-        username=encrypted_username,
-        subsonic_token=token,
-        salt=salt,
+        user_id=user_id,
         expires_at=datetime.utcnow() + timedelta(days=settings.session_expire_days)
     )
-    
     db.add(session)
     await db.commit()
     await db.refresh(session)
-    
     return session
 
 

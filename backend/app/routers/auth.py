@@ -1,66 +1,44 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, HttpUrl
+from sqlalchemy import select
+from pydantic import BaseModel
 from app.database import get_db
-from app.auth import create_session, get_session_by_id, delete_session, decrypt_value
-from app.dependencies import get_current_session, get_httpx_client
-from app.subsonic_client import SubsonicClient
-from app.models import Session
-import httpx
+from app.auth import create_session, delete_session, verify_password
+from app.dependencies import get_current_session, get_current_user
+from app.models import Session, User
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):
-    navidrome_url: HttpUrl
     username: str
     password: str
 
 
 class AuthResponse(BaseModel):
+    id: str
     username: str
-    navidrome_url: str
+    role: str
 
 
 @router.post("/login", response_model=AuthResponse)
 async def login(
     credentials: LoginRequest,
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    httpx_client: httpx.AsyncClient = Depends(get_httpx_client)
+    db: AsyncSession = Depends(get_db)
 ):
     """
-    Login with Navidrome credentials
-    Validates credentials with ping.view and creates session
+    Login with local username and password
     """
-    # Create temporary Subsonic client to test credentials
-    from app.auth import generate_salt, generate_subsonic_token
+    result = await db.execute(select(User).where(User.username == credentials.username))
+    user = result.scalar_one_or_none()
     
-    salt = generate_salt()
-    token = generate_subsonic_token(credentials.password, salt)
-    
-    test_client = SubsonicClient(
-        httpx_client=httpx_client,
-        base_url=str(credentials.navidrome_url),
-        username=credentials.username,
-        token=token,
-        salt=salt
-    )
-    
-    # Test connection with ping
-    try:
-        await test_client.get("ping.view")
-    except HTTPException as e:
-        raise HTTPException(status_code=401, detail="Invalid Navidrome credentials or URL")
+    if not user or not verify_password(credentials.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
     
     # Create session
-    session = await create_session(
-        db=db,
-        navidrome_url=str(credentials.navidrome_url),
-        username=credentials.username,
-        password=credentials.password
-    )
+    session = await create_session(db=db, user_id=user.id)
     
     # Set httpOnly cookie
     response.set_cookie(
@@ -73,19 +51,21 @@ async def login(
     )
     
     return AuthResponse(
-        username=credentials.username,
-        navidrome_url=str(credentials.navidrome_url)
+        id=user.id,
+        username=user.username,
+        role=user.role
     )
 
 
 @router.get("/me", response_model=AuthResponse)
-async def get_current_user(
-    session: Session = Depends(get_current_session)
+async def get_current_user_profile(
+    user: User = Depends(get_current_user)
 ):
-    """Get current authenticated user"""
+    """Get current authenticated user profile"""
     return AuthResponse(
-        username=decrypt_value(session.username),
-        navidrome_url=decrypt_value(session.navidrome_url)
+        id=user.id,
+        username=user.username,
+        role=user.role
     )
 
 
@@ -101,4 +81,4 @@ async def logout(
     # Clear cookie
     response.delete_cookie(key="session_id")
     
-    return {"message": "Logged out successfully"}
+    return {"message": "Успешный выход"}

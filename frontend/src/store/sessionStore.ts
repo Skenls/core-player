@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
-interface User {
+export interface User {
+  id: string;
   username: string;
-  navidromeUrl: string;
+  role: 'admin' | 'user';
 }
 
 interface SessionState {

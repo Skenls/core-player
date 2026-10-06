@@ -56,6 +56,14 @@ export const libraryApi = {
   },
 
   /**
+   * Create new playlist
+   */
+  async createPlaylist(name: string): Promise<Playlist> {
+    const { data } = await axiosClient.post<Playlist>('/library/playlists', { name });
+    return data;
+  },
+
+  /**
    * Get playlist details with tracks
    */
   async getPlaylist(id: string): Promise<PlaylistWithSongs> {
@@ -63,6 +71,27 @@ export const libraryApi = {
       `/library/playlists/${id}`
     );
     return data.playlist;
+  },
+
+  /**
+   * Add a track to playlist
+   */
+  async addTrackToPlaylist(playlistId: string, trackId: string): Promise<void> {
+    await axiosClient.post(`/library/playlists/${playlistId}/tracks`, { track_id: trackId });
+  },
+
+  /**
+   * Remove a track from playlist
+   */
+  async removeTrackFromPlaylist(playlistId: string, trackId: string): Promise<void> {
+    await axiosClient.delete(`/library/playlists/${playlistId}/tracks/${trackId}`);
+  },
+
+  /**
+   * Delete playlist
+   */
+  async deletePlaylist(playlistId: string): Promise<void> {
+    await axiosClient.delete(`/library/playlists/${playlistId}`);
   },
 
   /**
@@ -86,17 +115,40 @@ export const libraryApi = {
   },
 
   /**
-   * Star/favorite a track, album, or artist
+   * Get all favorite IDs for current user
    */
-  async star(id: string, type: 'track' | 'album' | 'artist'): Promise<void> {
-    await axiosClient.post('/library/star', { id, type });
+  async getFavoriteIds(): Promise<{ tracks: string[]; albums: string[] }> {
+    const { data } = await axiosClient.get<{ tracks: string[]; albums: string[] }>(
+      '/library/favorites/ids'
+    );
+    return data;
   },
 
   /**
-   * Unstar/unfavorite a track, album, or artist
+   * Toggle favorite
    */
-  async unstar(id: string, type: 'track' | 'album' | 'artist'): Promise<void> {
-    await axiosClient.post('/library/unstar', { id, type });
+  async toggleFavorite(id: string, type: 'track' | 'album'): Promise<{ starred: boolean; id: string; type: string }> {
+    const { data } = await axiosClient.post<{ starred: boolean; id: string; type: string }>(
+      '/library/favorites/toggle',
+      { id, type }
+    );
+    return data;
+  },
+
+  /**
+   * Get favorite tracks
+   */
+  async getFavoriteTracks(): Promise<Track[]> {
+    const { data } = await axiosClient.get<{ tracks: Track[] }>('/library/favorites/tracks');
+    return data.tracks;
+  },
+
+  /**
+   * Get favorite albums
+   */
+  async getFavoriteAlbums(): Promise<Album[]> {
+    const { data } = await axiosClient.get<{ albums: Album[] }>('/library/favorites/albums');
+    return data.albums;
   },
 
   /**
@@ -104,5 +156,19 @@ export const libraryApi = {
    */
   async scrobble(id: string, time?: number): Promise<void> {
     await axiosClient.post('/library/scrobble', { id, time });
+  },
+
+  /**
+   * Star/favorite
+   */
+  async star(id: string, type: 'track' | 'album' | 'artist'): Promise<void> {
+    await axiosClient.post('/library/favorites/toggle', { id, type: type === 'album' ? 'album' : 'track' });
+  },
+
+  /**
+   * Unstar/unfavorite
+   */
+  async unstar(id: string, type: 'track' | 'album' | 'artist'): Promise<void> {
+    await axiosClient.post('/library/favorites/toggle', { id, type: type === 'album' ? 'album' : 'track' });
   },
 };

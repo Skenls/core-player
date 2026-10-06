@@ -1,19 +1,19 @@
 import { axiosClient } from './client';
 
 export interface LoginRequest {
-  navidrome_url: string;
   username: string;
   password: string;
 }
 
 export interface AuthResponse {
+  id: string;
   username: string;
-  navidrome_url: string;
+  role: 'admin' | 'user';
 }
 
 export const authApi = {
   /**
-   * Login with Navidrome credentials
+   * Login with username and password
    */
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const { data } = await axiosClient.post<AuthResponse>('/auth/login', credentials);
@@ -27,7 +27,7 @@ export const authApi = {
     try {
       const { data } = await axiosClient.get<AuthResponse>('/auth/me');
       return data;
-    } catch (error) {
+    } catch {
       return null;
     }
   },

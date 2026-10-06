@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 type ActiveTab = 'home' | 'favorites' | 'tracks' | 'artists' | 'albums' | 'playlists' | 'settings';
-type BackgroundMode = 'dynamic' | 'custom';
-type AudioCodec = 'mp3' | 'raw' | 'opus' | 'flac';
+export type BackgroundMode = 'dynamic' | 'custom';
+export type AudioCodec = 'mp3' | 'raw' | 'opus' | 'flac';
 
 interface UIState {
   // Navigation
@@ -20,6 +20,8 @@ interface UIState {
   // Settings
   backgroundMode: BackgroundMode;
   customBackgroundUrl: string;
+  backgroundBlur: number;
+  backgroundDim: number;
   audioCodec: AudioCodec;
   
   // Actions
@@ -36,6 +38,8 @@ interface UIState {
   
   setBackgroundMode: (mode: BackgroundMode) => void;
   setCustomBackgroundUrl: (url: string) => void;
+  setBackgroundBlur: (blur: number) => void;
+  setBackgroundDim: (dim: number) => void;
   setAudioCodec: (codec: AudioCodec) => void;
 }
 
@@ -49,7 +53,9 @@ export const useUIStore = create<UIState>()(
       isQueueOpen: false,
       
       backgroundMode: 'dynamic',
-      customBackgroundUrl: '/helpers/background.jpg',
+      customBackgroundUrl: '/background.jpg',
+      backgroundBlur: 24,
+      backgroundDim: 40,
       audioCodec: 'mp3',
       
       setActiveTab: (tab) => set({ activeTab: tab }),
@@ -66,6 +72,8 @@ export const useUIStore = create<UIState>()(
       
       setBackgroundMode: (mode) => set({ backgroundMode: mode }),
       setCustomBackgroundUrl: (url) => set({ customBackgroundUrl: url }),
+      setBackgroundBlur: (blur) => set({ backgroundBlur: blur }),
+      setBackgroundDim: (dim) => set({ backgroundDim: dim }),
       setAudioCodec: (codec) => set({ audioCodec: codec })
     }),
     {
@@ -73,6 +81,8 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         backgroundMode: state.backgroundMode,
         customBackgroundUrl: state.customBackgroundUrl,
+        backgroundBlur: state.backgroundBlur,
+        backgroundDim: state.backgroundDim,
         audioCodec: state.audioCodec,
         isSidebarOpen: state.isSidebarOpen
       })
