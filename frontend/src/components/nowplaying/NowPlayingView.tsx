@@ -11,7 +11,9 @@ import {
   Repeat, 
   Repeat1, 
   Shuffle, 
-  ListPlus 
+  ListPlus,
+  Settings,
+  Sparkles
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
@@ -23,7 +25,17 @@ import { api } from '@/api';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 
 export function NowPlayingView() {
-  const { isNowPlayingOpen, closeNowPlaying, nowPlayingBackground } = useUIStore();
+  const { 
+    isNowPlayingOpen, 
+    closeNowPlaying, 
+    toggleSettings,
+    nowPlayingBackground, 
+    setNowPlayingBackground,
+    backgroundMode,
+    customBackgroundUrl,
+    backgroundBlur,
+    backgroundDim
+  } = useUIStore();
   const { 
     currentTrack, 
     isPlaying, 
@@ -120,6 +132,10 @@ export function NowPlayingView() {
     ? `/api/stream/cover/${currentTrack.coverArt}?size=600`
     : '/placeholder-album.png';
 
+  const bgUrl = (backgroundMode === 'custom' && customBackgroundUrl)
+    ? customBackgroundUrl
+    : coverUrl;
+
   return (
     <>
       <AnimatePresence>
@@ -129,28 +145,71 @@ export function NowPlayingView() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-50 overflow-hidden bg-[#121316] select-none"
+            className="fixed inset-0 z-50 overflow-hidden bg-[#0a0c10] select-none"
           >
-            {/* Opaque blurred backdrop */}
-            {nowPlayingBackground && (
+            {/* Background view */}
+            {nowPlayingBackground ? (
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <img
-                  src={coverUrl}
+                  key={bgUrl}
+                  src={bgUrl}
                   alt=""
-                  className="w-full h-full object-cover scale-125 blur-[100px] opacity-25 brightness-50"
+                  className="w-full h-full object-cover scale-110"
+                  style={{
+                    filter: `blur(${backgroundBlur}px)`,
+                    transform: 'scale(1.12)',
+                    transition: 'filter 0.3s ease-out'
+                  }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-[#121316]/90 via-[#121316]/75 to-[#121316]/95" />
+                {/* Darkening overlay controlled by backgroundDim slider */}
+                <div
+                  className="absolute inset-0 transition-colors duration-200"
+                  style={{
+                    backgroundColor: `rgba(0, 0, 0, ${backgroundDim / 100})`
+                  }}
+                />
+                {/* Soft ambient vignette */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/50 pointer-events-none" />
               </div>
+            ) : (
+              <div className="absolute inset-0 bg-[#0c0d12]" />
             )}
             
             <div className="relative z-10 h-full flex flex-col">
-              {/* Header with collapse chevron */}
-              <div className="flex items-center justify-end px-8 pt-6">
+              {/* Header with background toggle, settings and collapse buttons */}
+              <div className="flex items-center justify-end gap-3 px-8 pt-6">
+                {/* Direct Background Toggle */}
+                <motion.button
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => setNowPlayingBackground(!nowPlayingBackground)}
+                  className={`p-3 rounded-full backdrop-blur-md transition-all shadow-lg border ${
+                    nowPlayingBackground
+                      ? 'bg-blue-600/30 text-blue-400 border-blue-500/40 hover:bg-blue-600/40'
+                      : 'bg-white/10 text-white/50 border-white/10 hover:bg-white/15 hover:text-white'
+                  }`}
+                  title={nowPlayingBackground ? 'Выключить фон (чистый тёмный)' : 'Включить фон'}
+                >
+                  <Sparkles className="w-5 h-5" />
+                </motion.button>
+
+                {/* Settings Button */}
+                <motion.button
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={toggleSettings}
+                  className="p-3 bg-white/10 hover:bg-white/15 backdrop-blur-md rounded-full text-white/80 hover:text-white transition-colors shadow-lg border border-white/10"
+                  title="Настройки плеера"
+                >
+                  <Settings className="w-5 h-5" />
+                </motion.button>
+
+                {/* Collapse Button */}
                 <motion.button
                   whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.94 }}
                   onClick={closeNowPlaying}
-                  className="p-3 bg-white/10 hover:bg-white/15 backdrop-blur-md rounded-full text-white/80 hover:text-white transition-colors shadow-lg"
+                  className="p-3 bg-white/10 hover:bg-white/15 backdrop-blur-md rounded-full text-white/80 hover:text-white transition-colors shadow-lg border border-white/10"
                   title="Свернуть (Esc)"
                 >
                   <ChevronDown className="w-6 h-6" />

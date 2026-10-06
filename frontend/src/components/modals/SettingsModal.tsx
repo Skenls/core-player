@@ -115,7 +115,7 @@ export function SettingsModal() {
   return (
     <AnimatePresence>
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -318,7 +318,10 @@ export function SettingsModal() {
                   </div>
 
                   {/* Fullscreen Card Background Toggle */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div 
+                    onClick={() => setNowPlayingBackground(!nowPlayingBackground)}
+                    className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-colors"
+                  >
                     <div>
                       <div className="text-sm font-medium text-white">Фон в карточке трека</div>
                       <div className="text-xs text-white/50">Размытая обложка трека на заднем плане полноэкранного плеера</div>
@@ -327,8 +330,11 @@ export function SettingsModal() {
                       type="button"
                       role="switch"
                       aria-checked={nowPlayingBackground}
-                      onClick={() => setNowPlayingBackground(!nowPlayingBackground)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNowPlayingBackground(!nowPlayingBackground);
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none flex-shrink-0 ${
                         nowPlayingBackground ? 'bg-blue-600' : 'bg-white/20'
                       }`}
                     >
