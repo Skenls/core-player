@@ -1,5 +1,4 @@
-'use client';
-
+import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { TrackCard } from './TrackCard';
 import { usePlayerStore } from '@/store/playerStore';
@@ -37,7 +36,7 @@ const itemVariants = {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-4 animate-pulse">
+    <div className="bg-white/[0.04] border border-white/[0.08] rounded-3xl p-4 animate-pulse">
       <div className="aspect-square rounded-2xl bg-white/10 mb-4" />
       <div className="space-y-2">
         <div className="h-4 bg-white/10 rounded w-3/4" />
@@ -50,7 +49,7 @@ function SkeletonCard() {
 export function AlbumGrid({ items, type, isLoading = false }: AlbumGridProps) {
   const { setQueue } = usePlayerStore();
   
-  const handlePlayItem = async (index: number) => {
+  const handlePlayItem = useCallback(async (index: number) => {
     if (type === 'album') {
       // Load album tracks and play
       const album = items[index] as Album;
@@ -68,7 +67,7 @@ export function AlbumGrid({ items, type, isLoading = false }: AlbumGridProps) {
       setQueue(items as Track[], index);
       usePlayerStore.getState().play();
     }
-  };
+  }, [items, type, setQueue]);
   
   if (isLoading) {
     return (

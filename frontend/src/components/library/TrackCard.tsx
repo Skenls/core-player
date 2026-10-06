@@ -1,19 +1,19 @@
-'use client';
-
+import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Heart, ListPlus } from 'lucide-react';
-import { useState } from 'react';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { AddToPlaylistModal } from '@/components/modals/AddToPlaylistModal';
 import type { Track } from '@/types/subsonic';
+
+// In-memory cache of already loaded image URLs to prevent opacity-0 flashes
+const loadedImageCache = new Set<string>();
 
 interface TrackCardProps {
   track: Track;
   onPlay: () => void;
 }
 
-export function TrackCard({ track, onPlay }: TrackCardProps) {
-  const [imageLoaded, setImageLoaded] = useState(false);
+export const TrackCard = memo(function TrackCard({ track, onPlay }: TrackCardProps) {
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
   
   const { data: favoriteIds } = useFavoriteIds();
@@ -24,40 +24,46 @@ export function TrackCard({ track, onPlay }: TrackCardProps) {
     ? `/api/stream/cover/${track.coverArt}?size=300`
     : '/placeholder-album.png';
   
+  const [imageLoaded, setImageLoaded] = useState(() => loadedImageCache.has(coverUrl));
+  
   const handleClick = () => {
-    onPlay(); // Start playing without opening full screen card
+    onPlay();
   };
   
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ scale: 1.02 }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-        className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-4 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all"
+        className="group relative bg-white/[0.04] border border-white/[0.08] rounded-3xl p-4 cursor-pointer hover:bg-white/[0.08] hover:border-white/[0.16] transition-colors duration-200 transform-gpu will-change-transform"
         onClick={handleClick}
       >
         <div className="relative aspect-square rounded-2xl overflow-hidden mb-4 bg-white/5">
-          <motion.img
+          <img
             src={coverUrl}
             alt={track.album}
-            className="w-full h-full object-cover"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: imageLoaded ? 1 : 0 }}
-            transition={{ duration: 0.3 }}
-            onLoad={() => setImageLoaded(true)}
+            loading="lazy"
+            decoding="async"
+            className={`w-full h-full object-cover transition-opacity duration-300 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            onLoad={() => {
+              loadedImageCache.add(coverUrl);
+              setImageLoaded(true);
+            }}
           />
           
           {/* Quick Action Buttons (Favorite + Playlist) in corners */}
-          <div className="absolute top-2 right-2 flex items-center gap-1.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleFavorite.mutate({ id: track.id, type: 'track' });
               }}
-              className="p-2 rounded-full bg-black/50 backdrop-blur-md hover:bg-black/80 text-white/70 hover:text-white transition-all shadow-md"
+              className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white/70 hover:text-white transition-colors shadow-md"
               title={isFavorite ? 'Удалить из избранного' : 'В избранное'}
             >
               <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
@@ -69,7 +75,7 @@ export function TrackCard({ track, onPlay }: TrackCardProps) {
                 e.stopPropagation();
                 setIsPlaylistModalOpen(true);
               }}
-              className="p-2 rounded-full bg-black/50 backdrop-blur-md hover:bg-black/80 text-white/70 hover:text-white transition-all shadow-md"
+              className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white/70 hover:text-white transition-colors shadow-md"
               title="Добавить в плейлист"
             >
               <ListPlus className="w-4 h-4" />
@@ -77,21 +83,13 @@ export function TrackCard({ track, onPlay }: TrackCardProps) {
           </div>
           
           {/* Play button overlay */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileHover={{ opacity: 1, scale: 1 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          >
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl"
-            >
-              <Play className="w-7 h-7 text-white fill-white ml-1" />
-            </motion.button>
-          </motion.div>
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+            <div className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-200">
+              <Play className="w-6 h-6 fill-black ml-0.5" />
+            </div>
+          </div>
           
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-gradient-to-t from-blue-500/50 to-transparent blur-2xl pointer-events-none" />
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity bg-gradient-to-t from-blue-500/50 to-transparent blur-xl pointer-events-none" />
         </div>
         
         <div className="space-y-1">
@@ -116,4 +114,4 @@ export function TrackCard({ track, onPlay }: TrackCardProps) {
       />
     </>
   );
-}
+});
