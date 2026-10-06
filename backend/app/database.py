@@ -29,6 +29,15 @@ async def init_db():
     import app.models as models  # noqa
     
     async with engine.begin() as conn:
+        def check_and_migrate(sync_conn):
+            from sqlalchemy import inspect, text
+            inspector = inspect(sync_conn)
+            if "sessions" in inspector.get_table_names():
+                columns = [col["name"] for col in inspector.get_columns("sessions")]
+                if "navidrome_url" in columns:
+                    sync_conn.execute(text("DROP TABLE sessions"))
+
+        await conn.run_sync(check_and_migrate)
         await conn.run_sync(Base.metadata.create_all)
     
     # Check if any user exists
