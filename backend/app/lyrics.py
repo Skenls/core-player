@@ -11,9 +11,12 @@ async def fetch_lrclib_lyrics(
     duration: Optional[int] = None
 ) -> Optional[dict]:
     """
-    Fetch synchronized lyrics from LRCLIB API
+    Fetch synchronized lyrics from LRCLIB API with smart fallback search.
     Returns: {plainLyrics: str, syncedLyrics: str} or None
     """
+    plain_candidate = None
+
+    # 1. Try exact get with all provided params
     params = {
         "track_name": track_name,
         "artist_name": artist_name
@@ -30,10 +33,82 @@ async def fetch_lrclib_lyrics(
             timeout=5.0
         )
         if response.status_code == 200:
-            return response.json()
-        return None
+            data = response.json()
+            if data.get("syncedLyrics"):
+                return data
+            if data.get("plainLyrics"):
+                plain_candidate = data
     except Exception:
-        return None
+        pass
+
+    # 2. Try exact get without album/duration constraints
+    if album_name or duration:
+        try:
+            response = await httpx_client.get(
+                "https://lrclib.net/api/get",
+                params={"track_name": track_name, "artist_name": artist_name},
+                timeout=5.0
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("syncedLyrics"):
+                    return data
+                if data.get("plainLyrics") and not plain_candidate:
+                    plain_candidate = data
+        except Exception:
+            pass
+
+    # 3. Try search endpoint with track_name and artist_name
+    try:
+        search_res = await httpx_client.get(
+            "https://lrclib.net/api/search",
+            params={"track_name": track_name, "artist_name": artist_name},
+            timeout=5.0
+        )
+        if search_res.status_code == 200:
+            items = search_res.json()
+            if isinstance(items, list):
+                # Look for synced lyrics first
+                for item in items:
+                    if item.get("syncedLyrics"):
+                        return item
+                if not plain_candidate and items:
+                    for item in items:
+                        if item.get("plainLyrics"):
+                            plain_candidate = item
+                            break
+    except Exception:
+        pass
+
+    # 4. Try general query search `q={artist} {track}`
+    clean_title = re.sub(r'[\(\[].*?[\)\]]', '', track_name).strip()
+    clean_artist = re.sub(r'[\(\[].*?[\)\]]', '', artist_name).strip()
+    queries = [f"{artist_name} {track_name}"]
+    if clean_title != track_name or clean_artist != artist_name:
+        queries.append(f"{clean_artist} {clean_title}")
+
+    for q in queries:
+        try:
+            search_res = await httpx_client.get(
+                "https://lrclib.net/api/search",
+                params={"q": q},
+                timeout=5.0
+            )
+            if search_res.status_code == 200:
+                items = search_res.json()
+                if isinstance(items, list):
+                    for item in items:
+                        if item.get("syncedLyrics"):
+                            return item
+                    if not plain_candidate and items:
+                        for item in items:
+                            if item.get("plainLyrics"):
+                                plain_candidate = item
+                                break
+        except Exception:
+            pass
+
+    return plain_candidate
 
 
 def parse_lrc(lrc_text: str) -> list[dict]:

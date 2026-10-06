@@ -22,10 +22,24 @@ export function LyricsView({ lyrics }: LyricsViewProps) {
   const { activeLineIndex, seekToLine } = useLyricsSync(lyrics?.lines || null);
   
   useEffect(() => {
-    if (activeLineRef.current && containerRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
+    if (!containerRef.current) return;
+    
+    if (activeLineIndex === -1) {
+      containerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+      return;
+    }
+    
+    if (activeLineRef.current) {
+      const container = containerRef.current;
+      const el = activeLineRef.current;
+      const targetScroll = el.offsetTop - (container.clientHeight / 2) + (el.clientHeight / 2);
+      
+      container.scrollTo({
+        top: Math.max(0, targetScroll),
+        behavior: 'smooth'
       });
     }
   }, [activeLineIndex]);
@@ -56,16 +70,19 @@ export function LyricsView({ lyrics }: LyricsViewProps) {
     return (
       <div 
         ref={containerRef}
-        className="h-full overflow-y-auto scrollbar-none pr-6 space-y-5 py-24 select-none"
+        className="h-full overflow-y-auto pr-6 space-y-4 py-8 select-none scrollbar-thin scrollbar-thumb-white/20 hover:scrollbar-thumb-white/40"
         style={{
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)'
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)'
         }}
       >
+        <div className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-6">
+          Текст песни (без временных меток)
+        </div>
         {rawLines.map((line, idx) => (
           <p 
             key={idx}
-            className="text-2xl font-bold text-white/50 leading-relaxed hover:text-white/80 transition-colors"
+            className="text-2xl font-bold text-white/60 leading-relaxed hover:text-white transition-colors"
           >
             {line.text}
           </p>
@@ -110,7 +127,7 @@ export function LyricsView({ lyrics }: LyricsViewProps) {
               }`}
             >
               <span className="inline-block leading-snug">
-                {line.text || '♪'}
+                {line.text?.trim() ? line.text : '♪'}
               </span>
             </motion.div>
           );
