@@ -61,6 +61,16 @@ async def get_album(
     return {"album": album}
 
 
+def is_fio(name: str) -> bool:
+    import re
+    words = [w for w in name.strip().split() if w]
+    if len(words) in (2, 3, 4):
+        has_patronymic = bool(re.search(r'(ович|евич|ич|овна|евна|ична|инична)$', name, re.IGNORECASE))
+        all_cyrillic = all(re.match(r'^[А-Яа-яЁё\-]+$', w) for w in words)
+        return has_patronymic and all_cyrillic
+    return False
+
+
 @router.get("/artists")
 async def get_artists(
     client: SubsonicClient = Depends(get_subsonic_client)
@@ -71,6 +81,7 @@ async def get_artists(
     indexes = response.get("artists", {}).get("index", [])
     for index in indexes:
         artists.extend(index.get("artist", []))
+    artists = [a for a in artists if not is_fio(a.get("name", ""))]
     return {"artists": artists}
 
 
