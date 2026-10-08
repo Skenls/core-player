@@ -1,32 +1,49 @@
-# Dependencies
+# Node dependencies & build
 node_modules/
-backend/venv/
-venv/
+dist/
+frontend/dist/
+.eslintcache
+*.tsbuildinfo
 
-# Environment and secrets
+# Python & Virtual Environments
+venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Environment files & Secrets
 .env
 *.env
 backend/.env
+*.pem
+*.key
+*.token
 
 # Databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Python caches
-__pycache__/
-*.py[cod]
-*$py.class
-
-# OS files
+# Operating System & Editors
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Build outputs
-dist/
-build/
-*.egg-info/
-
-# Uploaded data
+# Server uploads & runtime data
 backend/data/*
 !backend/data/.gitkeep
+
+# Temporary and backup files
+*.bak
+*.tmp
+*.log
+*.sample.txt
+
+# Local design references & test screenshots
+helpers/
