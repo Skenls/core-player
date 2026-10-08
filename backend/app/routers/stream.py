@@ -90,8 +90,8 @@ async def stream_audio(
             response_headers["Content-Range"] = navidrome_response.headers["content-range"]
         if "content-length" in navidrome_response.headers:
             response_headers["Content-Length"] = navidrome_response.headers["content-length"]
-    elif "content-length" in navidrome_response.headers and not (format and format != "raw"):
-        response_headers["Content-Length"] = navidrome_response.headers["content-length"]
+    # For status 200 (full audio stream), omit Content-Length so Starlette/Uvicorn uses chunked transfer
+    # and never raises RuntimeError("Response content longer than Content-Length").
     
     async def stream_with_cleanup():
         """Generator with guaranteed cleanup"""
