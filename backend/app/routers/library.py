@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Literal
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, update
 from pydantic import BaseModel
 import asyncio
 from app.dependencies import get_subsonic_client, get_current_user
@@ -24,6 +24,10 @@ class CreatePlaylistRequest(BaseModel):
 
 class AddTrackRequest(BaseModel):
     track_id: str
+
+
+class ReorderPlaylistRequest(BaseModel):
+    track_ids: list[str]
 
 
 # ==========================================
@@ -403,3 +407,28 @@ async def delete_playlist(
     await db.delete(playlist)
     await db.commit()
     return {"message": "Плейлист удален"}
+
+
+@router.put("/playlists/{playlist_id}/reorder")
+async def reorder_playlist(
+    playlist_id: str,
+    req: ReorderPlaylistRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Reorder tracks in playlist"""
+    result = await db.execute(
+        select(Playlist).where(Playlist.id == playlist_id, Playlist.user_id == user.id)
+    )
+    playlist = result.scalar_one_or_none()
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Плейлист не найден")
+
+    for index, track_id in enumerate(req.track_ids):
+        await db.execute(
+            update(PlaylistTrack)
+            .where(PlaylistTrack.playlist_id == playlist.id, PlaylistTrack.track_id == track_id)
+            .values(position=index + 1)
+        )
+    await db.commit()
+    return {"message": "Порядок треков обновлен"}
