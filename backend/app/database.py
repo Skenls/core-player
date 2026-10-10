@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import event, text
 from app.config import settings
 
 
@@ -9,6 +10,15 @@ engine = create_async_engine(
     echo=False,
     future=True,
 )
+
+if "sqlite" in settings.database_url:
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(
@@ -29,6 +39,10 @@ async def init_db():
     import app.models as models  # noqa
     
     async with engine.begin() as conn:
+        if "sqlite" in settings.database_url:
+            await conn.execute(text("PRAGMA journal_mode=WAL"))
+            await conn.execute(text("PRAGMA busy_timeout=5000"))
+            await conn.execute(text("PRAGMA synchronous=NORMAL"))
         def check_and_migrate(sync_conn):
             from sqlalchemy import inspect, text
             inspector = inspect(sync_conn)

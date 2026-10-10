@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, Request, Query, UploadFile, File, HTTPEx
 from fastapi.responses import StreamingResponse, FileResponse
 import os
 import time
-from app.dependencies import get_subsonic_client
+from app.dependencies import get_subsonic_client, get_current_user
 from app.subsonic_client import SubsonicClient
+from app.models import User
 
 
 router = APIRouter(prefix="/stream", tags=["stream"])
@@ -21,15 +22,34 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__
 CUSTOM_BG_FILE = os.path.join(DATA_DIR, "custom_background.jpg")
 
 
+def is_valid_image(data: bytes) -> bool:
+    """Validate image magic bytes for JPEG, PNG, and WebP"""
+    if len(data) < 12:
+        return False
+    # JPEG: \xff\xd8\xff
+    if data.startswith(b"\xff\xd8\xff"):
+        return True
+    # PNG: \x89PNG\r\n\x1a\n
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    # WebP: RIFF....WEBP
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return True
+    return False
+
+
 @router.post("/custom-background")
 async def upload_custom_background(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user)
 ):
-    """Upload custom wallpaper image"""
+    """Upload custom wallpaper image (authenticated users only)"""
     os.makedirs(DATA_DIR, exist_ok=True)
     content = await file.read()
-    if len(content) > 25 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large (max 25MB)")
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+    if not is_valid_image(content):
+        raise HTTPException(status_code=400, detail="Недопустимый формат файла. Разрешены только JPEG, PNG и WebP")
     with open(CUSTOM_BG_FILE, "wb") as f:
         f.write(content)
     return {"url": f"/api/stream/custom-background?t={int(time.time())}"}

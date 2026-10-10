@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from pydantic import BaseModel, Field
 from datetime import datetime
+import asyncio
 from app.database import get_db
 from app.dependencies import require_admin
 from app.models import User
@@ -62,9 +63,10 @@ async def create_user(
         raise HTTPException(status_code=400, detail="Пользователь с таким логином уже существует")
     
     role = req.role if req.role in ["admin", "user"] else "user"
+    password_hash = await asyncio.to_thread(hash_password, req.password)
     new_user = User(
         username=req.username,
-        password_hash=hash_password(req.password),
+        password_hash=password_hash,
         role=role
     )
     db.add(new_user)
@@ -126,7 +128,7 @@ async def update_user(
         user_to_update.role = req.role
         
     if req.password:
-        user_to_update.password_hash = hash_password(req.password)
+        user_to_update.password_hash = await asyncio.to_thread(hash_password, req.password)
         
     await db.commit()
     await db.refresh(user_to_update)

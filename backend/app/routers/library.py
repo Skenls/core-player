@@ -38,6 +38,7 @@ class ReorderPlaylistRequest(BaseModel):
 async def get_albums(
     type: Literal["recent", "frequent", "random", "newest", "starred", "alphabeticalByName", "byYear", "byGenre"] = "newest",
     size: int = Query(default=50, le=500),
+    user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Get list of albums"""
@@ -53,6 +54,7 @@ async def get_albums(
 @router.get("/albums/{album_id}")
 async def get_album(
     album_id: str,
+    user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Get album details with tracks"""
@@ -73,6 +75,7 @@ def is_fio(name: str) -> bool:
 
 @router.get("/artists")
 async def get_artists(
+    user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Get all artists (indexed)"""
@@ -88,6 +91,7 @@ async def get_artists(
 @router.get("/artists/{artist_id}")
 async def get_artist(
     artist_id: str,
+    user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Get artist details with albums"""
@@ -99,6 +103,7 @@ async def get_artist(
 @router.get("/search")
 async def search(
     query: str = Query(..., min_length=2),
+    user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Search for tracks, albums, and artists"""
@@ -110,6 +115,7 @@ async def search(
 @router.get("/random")
 async def get_random_tracks(
     size: int = Query(default=50, le=500),
+    user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Get random tracks"""
@@ -122,6 +128,7 @@ async def get_random_tracks(
 async def scrobble_track(
     id: str,
     time: int | None = None,
+    user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
     """Scrobble a track (mark as played)"""

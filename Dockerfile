@@ -42,8 +42,9 @@ RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Data persistence directory
-RUN mkdir -p /app/backend/data
+# Data and cache persistence directories
+RUN mkdir -p /app/backend/data /var/cache/nginx/covers && \
+    chown -R www-data:www-data /var/cache/nginx
 
 EXPOSE 3000
 
