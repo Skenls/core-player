@@ -3,12 +3,15 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Play, Disc } from 'lucide-react';
 import { useAlbums, useAlbumDetails } from '@/hooks/useLibrary';
 import { usePlayerStore } from '@/store/playerStore';
+import { useUIStore } from '@/store/uiStore';
+import { AlbumCard } from '@/components/library/AlbumCard';
+import { cleanArtistName } from '@/lib/formatters';
 import type { AlbumListType } from '@/api/library';
 
 export function AlbumsPage() {
   const [sortType, setSortType] = useState<AlbumListType>('newest');
   const { data: albums, isLoading } = useAlbums(sortType, 100);
-  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const { selectedAlbumId, openAlbum, closeAlbum } = useUIStore();
   
   const { data: albumDetails } = useAlbumDetails(selectedAlbumId);
   const { setQueue } = usePlayerStore();
@@ -39,11 +42,11 @@ export function AlbumsPage() {
       <div className="space-y-8">
         {/* Back button */}
         <button
-          onClick={() => setSelectedAlbumId(null)}
+          onClick={closeAlbum}
           className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors text-white/70 hover:text-white"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Назад к альбомам</span>
+          <span>Назад</span>
         </button>
         
         {/* Album header */}
@@ -62,7 +65,7 @@ export function AlbumsPage() {
             <div>
               <p className="text-white/50 text-sm uppercase tracking-wider mb-2">Альбом</p>
               <h1 className="text-5xl font-bold text-white mb-3">{albumDetails.name}</h1>
-              <p className="text-white/70 text-xl">{albumDetails.artist}</p>
+              <p className="text-white/70 text-xl">{cleanArtistName(albumDetails.artist)}</p>
             </div>
             
             <div className="flex items-center gap-4 text-white/50 text-sm">
@@ -100,7 +103,7 @@ export function AlbumsPage() {
               
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium truncate">{track.title}</p>
-                <p className="text-white/50 text-sm truncate">{track.artist}</p>
+                <p className="text-white/50 text-sm truncate">{cleanArtistName(track.artist)}</p>
               </div>
               
               <span className="text-white/50 text-sm font-mono">
@@ -191,40 +194,11 @@ export function AlbumsPage() {
           className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6"
         >
           {albums.map((album) => (
-            <motion.div
+            <AlbumCard
               key={album.id}
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              onClick={() => setSelectedAlbumId(album.id)}
-              className="group relative bg-white/[0.04] border border-white/[0.08] rounded-3xl p-4 cursor-pointer hover:bg-white/[0.08] hover:border-white/[0.16] transition-colors duration-200 transform-gpu will-change-transform"
-            >
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5 mb-4">
-                {album.coverArt ? (
-                  <img
-                    src={`/api/stream/cover/${album.coverArt}?size=300`}
-                    alt={album.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-white/5 text-white/30">
-                    <Disc className="w-12 h-12" />
-                  </div>
-                )}
-                
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
-                  <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform">
-                    <Play className="w-5 h-5 fill-black ml-0.5" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <h3 className="text-white font-medium truncate">{album.name}</h3>
-                <p className="text-white/50 text-sm truncate">{album.artist}</p>
-              </div>
-            </motion.div>
+              album={album}
+              onClick={() => openAlbum(album.id)}
+            />
           ))}
         </div>
       )}

@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  core-player:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: core-player
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/data:/app/backend/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/backend/data/navidrome_player.db
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000

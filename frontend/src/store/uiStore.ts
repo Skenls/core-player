@@ -17,6 +17,12 @@ interface UIState {
   isSettingsOpen: boolean;
   isQueueOpen: boolean;
   
+  // Album navigation
+  selectedAlbumId: string | null;
+  previousTab: ActiveTab | null;
+  openAlbum: (albumId: string) => void;
+  closeAlbum: () => void;
+  
   // Settings
   backgroundMode: BackgroundMode;
   customBackgroundUrl: string;
@@ -54,6 +60,9 @@ export const useUIStore = create<UIState>()(
       isSettingsOpen: false,
       isQueueOpen: false,
       
+      selectedAlbumId: null,
+      previousTab: null,
+      
       backgroundMode: 'dynamic',
       customBackgroundUrl: '/background.jpg',
       backgroundBlur: 24,
@@ -61,7 +70,23 @@ export const useUIStore = create<UIState>()(
       audioCodec: 'mp3',
       nowPlayingBackground: true,
       
-      setActiveTab: (tab) => set({ activeTab: tab }),
+      setActiveTab: (tab) => set((state) => ({ 
+        activeTab: tab, 
+        selectedAlbumId: tab === 'albums' ? null : state.selectedAlbumId,
+        previousTab: null 
+      })),
+
+      openAlbum: (albumId) => set((state) => ({
+        selectedAlbumId: albumId,
+        previousTab: state.activeTab !== 'albums' ? state.activeTab : state.previousTab,
+        activeTab: 'albums'
+      })),
+
+      closeAlbum: () => set((state) => ({
+        selectedAlbumId: null,
+        activeTab: state.previousTab || 'albums',
+        previousTab: null
+      })),
       
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
       setSidebarOpen: (open) => set({ isSidebarOpen: open }),

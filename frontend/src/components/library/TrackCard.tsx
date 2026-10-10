@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Play, Heart, ListPlus } from 'lucide-react';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { AddToPlaylistModal } from '@/components/modals/AddToPlaylistModal';
+import { cleanArtistName } from '@/lib/formatters';
 import type { Track } from '@/types/subsonic';
 
 // In-memory cache of already loaded image URLs to prevent opacity-0 flashes
@@ -102,7 +103,7 @@ export const TrackCard = memo(function TrackCard({ track, onPlay }: TrackCardPro
             )}
           </div>
           <p className="text-sm text-white/50 truncate">
-            {track.artist}
+            {cleanArtistName(track.artist)}
           </p>
         </div>
       </motion.div>

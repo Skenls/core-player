@@ -23,6 +23,7 @@ import { AddToPlaylistModal } from '@/components/modals/AddToPlaylistModal';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
+import { cleanArtistName } from '@/lib/formatters';
 
 export function NowPlayingView() {
   const { 
@@ -265,7 +266,7 @@ export function NowPlayingView() {
                       </button>
                     </div>
                     <p className="text-lg text-white/60 truncate font-medium">
-                      {currentTrack.artist}
+                      {cleanArtistName(currentTrack.artist)}
                     </p>
                     <p className="text-xs text-white/30 truncate">
                       {currentTrack.album}

@@ -7,6 +7,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useUIStore } from '@/store/uiStore';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { AddToPlaylistModal } from '@/components/modals/AddToPlaylistModal';
+import { cleanArtistName } from '@/lib/formatters';
 
 export function PlayerBar() {
   const {
@@ -135,7 +136,7 @@ export function PlayerBar() {
                     {currentTrack.title}
                   </p>
                   <p className="text-white/50 text-sm truncate">
-                    {currentTrack.artist}
+                    {cleanArtistName(currentTrack.artist)}
                   </p>
                 </div>
               </motion.button>

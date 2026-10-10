@@ -5,6 +5,7 @@ import { X, Plus, ListMusic, Check } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
+import { cleanArtistName } from '@/lib/formatters';
 import type { Track } from '@/types/subsonic';
 
 interface AddToPlaylistModalProps {
@@ -82,7 +83,7 @@ export function AddToPlaylistModal({ isOpen, onClose, track }: AddToPlaylistModa
             <div>
               <h3 className="font-semibold text-white">Добавить в плейлист</h3>
               <p className="text-xs text-white/50 truncate max-w-[280px]">
-                {track.title} — {track.artist}
+                {track.title} — {cleanArtistName(track.artist)}
               </p>
             </div>
             <button

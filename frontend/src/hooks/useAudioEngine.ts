@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { audioService } from '@/lib/audioService';
 import { usePlayerStore } from '@/store/playerStore';
+import { cleanArtistName } from '@/lib/formatters';
 
 export function useAudioEngine() {
   const { currentTrack, nextTrack, updateProgress, repeat, seekRequestedTime, clearSeekRequest } = usePlayerStore();
@@ -70,7 +71,7 @@ export function useAudioEngine() {
     
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.title,
-      artist: currentTrack.artist,
+      artist: cleanArtistName(currentTrack.artist),
       album: currentTrack.album,
       artwork: currentTrack.coverArt ? [
         { src: `/api/stream/cover/${currentTrack.coverArt}?size=96`, sizes: '96x96', type: 'image/jpeg' },

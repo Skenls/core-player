@@ -7,6 +7,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { api } from '@/api';
 import { Music, ListMusic, Plus, Play, ArrowLeft, Trash2 } from 'lucide-react';
+import { cleanArtistName } from '@/lib/formatters';
 import type { Track } from '@/types/subsonic';
 
 export function PlaylistsPage() {
@@ -142,7 +143,7 @@ export function PlaylistsPage() {
                       )}
                       <div className="truncate flex-1">
                         <div className="text-sm font-medium text-white truncate">{t.title}</div>
-                        <div className="text-xs text-white/50 truncate">{t.artist}</div>
+                        <div className="text-xs text-white/50 truncate">{cleanArtistName(t.artist)}</div>
                       </div>
                     </div>
 

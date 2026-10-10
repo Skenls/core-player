@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { TrackCard } from './TrackCard';
+import { AlbumCard } from './AlbumCard';
 import { usePlayerStore } from '@/store/playerStore';
-import { api } from '@/api';
+import { useUIStore } from '@/store/uiStore';
 import type { Track, Album } from '@/types/subsonic';
 
 interface AlbumGridProps {
@@ -48,26 +49,12 @@ function SkeletonCard() {
 
 export function AlbumGrid({ items, type, isLoading = false }: AlbumGridProps) {
   const { setQueue } = usePlayerStore();
+  const { openAlbum } = useUIStore();
   
-  const handlePlayItem = useCallback(async (index: number) => {
-    if (type === 'album') {
-      // Load album tracks and play
-      const album = items[index] as Album;
-      try {
-        const albumData = await api.library.getAlbum(album.id);
-        if (albumData.song && albumData.song.length > 0) {
-          setQueue(albumData.song, 0);
-          usePlayerStore.getState().play();
-        }
-      } catch (error) {
-        console.error('Failed to load album:', error);
-      }
-    } else {
-      // Play tracks directly
-      setQueue(items as Track[], index);
-      usePlayerStore.getState().play();
-    }
-  }, [items, type, setQueue]);
+  const handlePlayTrack = useCallback((index: number) => {
+    setQueue(items as Track[], index);
+    usePlayerStore.getState().play();
+  }, [items, setQueue]);
   
   if (isLoading) {
     return (
@@ -96,15 +83,17 @@ export function AlbumGrid({ items, type, isLoading = false }: AlbumGridProps) {
     >
       {items.map((item, index) => (
         <motion.div key={item.id} variants={itemVariants}>
-          <TrackCard 
-            track={type === 'track' ? item as Track : {
-              ...item,
-              title: (item as Album).name,
-              artist: (item as Album).artist || 'Unknown Artist',
-              album: (item as Album).name,
-            } as Track} 
-            onPlay={() => handlePlayItem(index)} 
-          />
+          {type === 'album' ? (
+            <AlbumCard
+              album={item as Album}
+              onClick={() => openAlbum(item.id)}
+            />
+          ) : (
+            <TrackCard 
+              track={item as Track} 
+              onPlay={() => handlePlayTrack(index)} 
+            />
+          )}
         </motion.div>
       ))}
     </motion.div>
