@@ -8,9 +8,7 @@ export function useKeyboardShortcuts() {
     togglePlayPause, 
     currentTime, 
     duration, 
-    seek, 
-    volume, 
-    setVolume 
+    seek
   } = usePlayerStore();
   
   const { 
@@ -57,16 +55,6 @@ export function useKeyboardShortcuts() {
           }
           break;
 
-        case 'ArrowUp':
-          e.preventDefault();
-          setVolume(Math.min(1, volume + 0.05));
-          break;
-
-        case 'ArrowDown':
-          e.preventDefault();
-          setVolume(Math.max(0, volume - 0.05));
-          break;
-
         case 'KeyF':
           e.preventDefault();
           if (currentTrack) {
@@ -92,8 +80,6 @@ export function useKeyboardShortcuts() {
     currentTime,
     duration,
     seek,
-    volume,
-    setVolume,
     isNowPlayingOpen,
     toggleNowPlaying,
     closeNowPlaying,

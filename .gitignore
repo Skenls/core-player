@@ -47,3 +47,6 @@ backend/data/*
 
 # Local design references & test screenshots
 helpers/
+
+# Local backup / dump files
+navidrome@*

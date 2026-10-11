@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Play, Pause, SkipBack, SkipForward, Heart, Repeat, Repeat1, ListPlus } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Heart, Repeat, Repeat1, ListPlus, Volume2, Volume1, VolumeX } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
 import { useUIStore } from '@/store/uiStore';
@@ -16,6 +16,8 @@ export function PlayerBar() {
     currentTime,
     duration,
     repeat,
+    volume,
+    setVolume,
     togglePlayPause,
     previousTrack,
     nextTrack,
@@ -29,6 +31,13 @@ export function PlayerBar() {
   const [dragTime, setDragTime] = useState(0);
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
+
+  // Volume slider state
+  const [isVolumeHovered, setIsVolumeHovered] = useState(false);
+  const [isVolumeDragging, setIsVolumeDragging] = useState(false);
+  const volumeBarRef = useRef<HTMLDivElement>(null);
+  const volumeContainerRef = useRef<HTMLDivElement>(null);
+  const prevVolumeRef = useRef(volume > 0 ? volume : 0.7);
   
   const { data: favoriteIds } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
@@ -79,6 +88,50 @@ export function PlayerBar() {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging, dragTime, duration, seek]);
+
+  const handleToggleMute = () => {
+    if (volume > 0) {
+      prevVolumeRef.current = volume;
+      setVolume(0);
+    } else {
+      setVolume(prevVolumeRef.current > 0 ? prevVolumeRef.current : 0.7);
+    }
+  };
+
+  const updateVolumeFromEvent = (clientX: number) => {
+    if (!volumeBarRef.current) return;
+    const rect = volumeBarRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    setVolume(percent);
+  };
+
+  const handleVolumeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsVolumeDragging(true);
+    updateVolumeFromEvent(e.clientX);
+  };
+
+  useEffect(() => {
+    if (!isVolumeDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      updateVolumeFromEvent(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsVolumeDragging(false);
+      if (!volumeContainerRef.current?.matches(':hover')) {
+        setIsVolumeHovered(false);
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isVolumeDragging]);
   
   if (!currentTrack) {
     return null;
@@ -115,8 +168,8 @@ export function PlayerBar() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between max-w-screen-2xl mx-auto gap-8">
             
-            {/* Left: Track info */}
-            <div className="flex items-center gap-3 flex-1 min-w-0 max-w-xs">
+            {/* Left: Track info & playback options */}
+            <div className="flex items-center gap-3 flex-1 min-w-0 max-w-sm">
               <motion.button
                 onClick={openNowPlaying}
                 className="flex items-center gap-3 min-w-0 group flex-1"
@@ -162,6 +215,25 @@ export function PlayerBar() {
               >
                 <ListPlus className="w-5 h-5" />
               </button>
+
+              {/* Repeat button (moved to left section after Add to Playlist) */}
+              <button
+                onClick={toggleRepeat}
+                className={`p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 ${
+                  repeat !== 'off' ? 'text-blue-400' : 'text-white/50 hover:text-white'
+                }`}
+                title={
+                  repeat === 'off' ? 'Повтор выключен' : 
+                  repeat === 'one' ? 'Повтор трека' : 
+                  'Повтор всех'
+                }
+              >
+                {repeat === 'one' ? (
+                  <Repeat1 className="w-5 h-5" />
+                ) : (
+                  <Repeat className="w-5 h-5" />
+                )}
+              </button>
             </div>
             
             {/* Center: Playback controls */}
@@ -202,23 +274,54 @@ export function PlayerBar() {
               </div>
             </div>
             
-            {/* Right: Repeat control */}
-            <div className="flex items-center justify-end gap-2 flex-1 max-w-xs">
-              <button
-                onClick={toggleRepeat}
-                className={`p-2 hover:bg-white/10 rounded-lg transition-colors ${
-                  repeat !== 'off' ? 'text-blue-400' : 'text-white/50'
+            {/* Right: Volume control (expands slider on hover) */}
+            <div 
+              ref={volumeContainerRef}
+              onMouseEnter={() => setIsVolumeHovered(true)}
+              onMouseLeave={() => {
+                if (!isVolumeDragging) setIsVolumeHovered(false);
+              }}
+              className="flex items-center justify-end gap-2 flex-1 max-w-xs group"
+            >
+              {/* Expanding Volume Slider */}
+              <div
+                className={`flex items-center transition-all duration-200 ease-out overflow-hidden ${
+                  isVolumeHovered || isVolumeDragging ? 'w-24 opacity-100 mr-1' : 'w-0 opacity-0 pointer-events-none'
                 }`}
-                title={
-                  repeat === 'off' ? 'Повтор выключен' : 
-                  repeat === 'one' ? 'Повтор трека' : 
-                  'Повтор всех'
-                }
               >
-                {repeat === 'one' ? (
-                  <Repeat1 className="w-5 h-5" />
+                <div
+                  ref={volumeBarRef}
+                  onMouseDown={handleVolumeMouseDown}
+                  className="relative w-full h-4 flex items-center cursor-pointer group/slider select-none"
+                  title={`Громкость: ${Math.round(volume * 100)}%`}
+                >
+                  {/* Track background */}
+                  <div className="w-full h-1 group-hover/slider:h-1.5 bg-white/20 rounded-full overflow-hidden transition-all">
+                    <div
+                      className="h-full bg-white rounded-full transition-all"
+                      style={{ width: `${volume * 100}%` }}
+                    />
+                  </div>
+                  {/* Thumb dot */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow-md pointer-events-none transition-transform group-hover/slider:scale-110"
+                    style={{ left: `${volume * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Speaker Icon / Mute Button */}
+              <button
+                onClick={handleToggleMute}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white flex-shrink-0"
+                title={volume === 0 ? 'Включить звук' : `Громкость: ${Math.round(volume * 100)}% (нажмите для выключения звука)`}
+              >
+                {volume === 0 ? (
+                  <VolumeX className="w-5 h-5 text-white/40" />
+                ) : volume < 0.5 ? (
+                  <Volume1 className="w-5 h-5 text-white/70" />
                 ) : (
-                  <Repeat className="w-5 h-5" />
+                  <Volume2 className="w-5 h-5 text-white/70" />
                 )}
               </button>
             </div>
