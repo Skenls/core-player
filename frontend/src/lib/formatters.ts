@@ -5,10 +5,14 @@
 // Cyrillic and Latin patronymic endings (e.g., Олегович, Dmitrievich, Petrovna, Ivanovych)
 const PATRONYMIC_REGEX = /(?:ович|евич|ич|овна|евна|ична|инична|ovich|evich|ich|ovna|evna|ichna|inichna|ovych|evych|ivna|avna)$/i;
 
+const RUSSIAN_SURNAME_REGEX = /(?:ов|ова|ев|ева|ёв|ёва|ин|ина|ын|ына|ский|ская|ской|цкий|цкая|енко|чук|ov|ova|ev|eva|off|in|ina|yn|yna|sky|skiy|skaya|tsky|tskiy|enko|chuk)$/i;
+
+const COMMON_FIRST_NAME_REGEX = /^(?:dmitri|dmitriy|dmitry|dima|sergei|sergey|serezha|nikolai|nikolay|kolya|grigori|grigoriy|grigory|grisha|aleksandr|alexander|alexandr|sasha|shura|aleksei|aleksey|alexey|lesha|ivan|vanya|mikhail|misha|maksim|maxim|artem|artyom|tema|danil|daniil|danila|danya|vladimir|vova|volodya|vladislav|vlad|denis|pavel|pasha|egor|ilya|ilyusha|kirill|timur|roman|roma|anton|antoha|oleg|gleb|matvey|yaroslav|fedor|fedya|stepan|styopa|anna|anya|elena|lena|olga|olya|tatiana|tatyana|tanya|ekaterina|katya|maria|masha|anastasia|nastya|polina|daria|dasha|alisa|ksenia|ksyusha|дмитрий|дима|сергей|серёжа|николай|коля|григорий|гриша|александр|саша|алексей|лёша|иван|ваня|михаил|миша|максим|артём|артем|данил|даниил|данила|владимир|вова|владислав|влад|денис|павел|паша|егор|илья|кирилл|тимур|роман|антон|олег|глеб|матвей|ярослав|фёдор|федор|степан|стёпа|анна|елена|ольга|татьяна|екатерина|мария|анастасия|полина|дарья|алиса|ксения)$/i;
+
 /**
  * Checks if a string segment is a full name / legal name (FIO).
  * Matches names like "Ицков Дмитрий Олегович", "Dmitriy Olegovich Itskov",
- * "Иванов И. И.", "Itskov D. O.", "Иванов Иван Иванович".
+ * "Dmitri Itskov", "Иванов И. И.", "Itskov D. O.", "Иванов Иван Иванович".
  */
 export function isFioSegment(segment: string): boolean {
   const trimmed = segment.trim();
@@ -32,6 +36,11 @@ export function isFioSegment(segment: string): boolean {
     // Has initials (e.g. "И. И." or "И." or "D. O." or "D.")
     const hasInitials = words.some((w) => /^(?:[А-Яа-яЁё]|[A-Za-z])\.$/.test(w));
     if (hasInitials) return true;
+
+    // Common first name + Russian/Slavic surname ending (e.g. "Dmitri Itskov", "Николай Паньков")
+    const hasFirstName = words.some((w) => COMMON_FIRST_NAME_REGEX.test(w.replace(/\.$/, '')));
+    const hasSurname = words.some((w) => RUSSIAN_SURNAME_REGEX.test(w));
+    if (hasFirstName && hasSurname) return true;
   }
 
   return false;
@@ -44,6 +53,7 @@ export function isFioSegment(segment: string): boolean {
  * Examples:
  * - "Kai Angel • Ицков Дмитрий Олегович" -> "Kai Angel"
  * - "Kai Angel • Dmitriy Olegovich Itskov" -> "Kai Angel"
+ * - "Kai Angel • Dmitri Itskov" -> "Kai Angel"
  * - "LIDA (Паньков Николай Романович)" -> "LIDA"
  * - "Kai Angel (Dmitriy Olegovich Itskov)" -> "Kai Angel"
  * - "Artist (ф и о)" / "Artist (fio)" -> "Artist"
@@ -68,7 +78,7 @@ export function cleanArtistName(artist?: string | null): string {
   // 4. Remove parenthetical initials (e.g. "(Иванов И. И.)", "(Itskov D. O.)")
   cleaned = cleaned.replace(/\s*\((?:[A-ZА-ЯЁ][a-zа-яё]+\s+(?:[A-ZА-ЯЁ]\.\s*)+|(?:[A-ZА-ЯЁ]\.\s*)+[A-ZА-ЯЁ][a-zа-яё]+)\)/g, '');
 
-  // 5. Handle dash separator with FIO (e.g. "Kai Angel - Dmitriy Olegovich Itskov")
+  // 5. Handle dash separator with FIO (e.g. "Kai Angel - Dmitriy Olegovich Itskov", "Kai Angel - Dmitri Itskov")
   const dashParts = cleaned.split(/\s+[-—–]\s+/);
   if (dashParts.length === 2) {
     if (isFioSegment(dashParts[1])) {

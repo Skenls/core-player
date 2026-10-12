@@ -12,110 +12,6 @@ const albumSplitMap = new Map<string, string[]>();
 const artistCollabMap = new Map<string, string[]>();
 
 /**
- * Normalizes an album key using title, cleaned artist, and year/cover when present.
- */
-function getAlbumGroupKey(album: Album): string {
-  const normTitle = (album.name || '').trim().toLowerCase();
-  const cleanedArtist = cleanArtistName(album.artist).toLowerCase();
-  
-  // If year is available, include it to differentiate distinct releases with same name
-  const yearKey = album.year ? `_y${album.year}` : '';
-  
-  // Notice: If artists are features/duos (e.g. "Kai Angel" and "Kai Angel, 9mice"),
-  // they share the same album release title and should be grouped together.
-  // We extract the primary artist token to group features of the same release:
-  const primaryArtistToken = cleanedArtist.split(/[,&/]|feat|ft/)[0]?.trim() || '';
-  
-  // If coverArt is identical across splits, that's a strong release identifier
-  const coverKey = album.coverArt ? `_cov${album.coverArt}` : '';
-
-  if (coverKey) {
-    return `${normTitle}${coverKey}`;
-  }
-  
-  return `${normTitle}_${primaryArtistToken}${yearKey}`;
-}
-
-/**
- * Deduplicates albums that have been split across multiple artist tags in Navidrome / Subsonic.
- * Merges track counts, durations, and preserves companion split IDs.
- */
-export function deduplicateAlbums(albums: Album[]): UnifiedAlbum[] {
-  if (!albums || albums.length === 0) return [];
-
-  const groups = new Map<string, UnifiedAlbum>();
-
-  for (const album of albums) {
-    const key = getAlbumGroupKey(album);
-    const existing = groups.get(key);
-
-    if (!existing) {
-      const unified: UnifiedAlbum = {
-        ...album,
-        splitIds: [album.id],
-      };
-      groups.set(key, unified);
-      albumSplitMap.set(album.id, [album.id]);
-    } else {
-      // Merge counts
-      existing.songCount = (existing.songCount || 0) + (album.songCount || 0);
-      existing.duration = (existing.duration || 0) + (album.duration || 0);
-      
-      if (!existing.splitIds) {
-        existing.splitIds = [existing.id];
-      }
-      if (!existing.splitIds.includes(album.id)) {
-        existing.splitIds.push(album.id);
-      }
-      
-      // Update coverArt if existing didn't have one
-      if (!existing.coverArt && album.coverArt) {
-        existing.coverArt = album.coverArt;
-      }
-      // Update year if existing didn't have one
-      if (!existing.year && album.year) {
-        existing.year = album.year;
-      }
-
-      // Prefer cleaner / solo artist name as primary display
-      const currentArtistClean = cleanArtistName(existing.artist);
-      const newArtistClean = cleanArtistName(album.artist);
-      const currentHasComma = currentArtistClean.includes(',') || currentArtistClean.includes('&');
-      const newHasComma = newArtistClean.includes(',') || newArtistClean.includes('&');
-
-      if (currentHasComma && !newHasComma) {
-        existing.id = album.id;
-        existing.artist = album.artist;
-      } else if (existing.artistId && !album.artistId) {
-        // Keep existing
-      } else if (!existing.artistId && album.artistId) {
-        existing.artistId = album.artistId;
-      }
-    }
-  }
-
-  const result = Array.from(groups.values());
-
-  // Update albumSplitMap for every splitId in all groups
-  for (const group of result) {
-    if (group.splitIds && group.splitIds.length > 0) {
-      for (const id of group.splitIds) {
-        albumSplitMap.set(id, group.splitIds);
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Returns all split IDs associated with an album ID.
- */
-export function getAlbumSplitIds(albumId: string): string[] {
-  return albumSplitMap.get(albumId) || [albumId];
-}
-
-/**
  * Splits compound artist strings like "Kai Angel, 9mice", "Kai Angel & 9mice",
  * "Kai Angel feat. 9mice" into individual artist names.
  */
@@ -128,6 +24,115 @@ export function splitArtistNames(name?: string | null): string[] {
   return parts
     .map((p) => cleanArtistName(p.trim()))
     .filter((p) => p.length > 0 && !isFioSegment(p));
+}
+
+/**
+ * Deduplicates albums that have been split across multiple artist tags in Navidrome / Subsonic.
+ * Groups by normalized release title, checking for artist overlap or matching years.
+ */
+export function deduplicateAlbums(albums: Album[]): UnifiedAlbum[] {
+  if (!albums || albums.length === 0) return [];
+
+  const grouped: UnifiedAlbum[][] = [];
+
+  for (const album of albums) {
+    const title = (album.name || '').trim().toLowerCase();
+    if (!title) continue;
+
+    const artistRaw = (album.artist || '').trim();
+    const year = album.year || 0;
+    const artistTokens = splitArtistNames(artistRaw).map((a) => a.toLowerCase());
+
+    let matchedGroup: UnifiedAlbum[] | null = null;
+
+    for (const group of grouped) {
+      const first = group[0];
+      const firstTitle = (first.name || '').trim().toLowerCase();
+
+      if (title === firstTitle) {
+        const firstArtistRaw = (first.artist || '').trim();
+        const firstYear = first.year || 0;
+        const firstArtistTokens = splitArtistNames(firstArtistRaw).map((a) => a.toLowerCase());
+
+        let overlap = false;
+        if (artistTokens.length === 0 || firstArtistTokens.length === 0) {
+          overlap = true;
+        } else {
+          for (const t of artistTokens) {
+            if (firstArtistTokens.some((ft) => ft.includes(t) || t.includes(ft))) {
+              overlap = true;
+              break;
+            }
+          }
+        }
+
+        // If distinct different years AND zero artist overlap, treat as separate releases
+        if (year && firstYear && year !== firstYear && !overlap) {
+          continue;
+        }
+
+        matchedGroup = group;
+        break;
+      }
+    }
+
+    if (matchedGroup) {
+      matchedGroup.push(album as UnifiedAlbum);
+    } else {
+      grouped.push([album as UnifiedAlbum]);
+    }
+  }
+
+  const result: UnifiedAlbum[] = [];
+
+  for (const group of grouped) {
+    if (group.length === 1) {
+      const primary: UnifiedAlbum = {
+        ...group[0],
+        splitIds: [group[0].id],
+      };
+      albumSplitMap.set(primary.id, [primary.id]);
+      result.push(primary);
+    } else {
+      // Pick primary album: prefer solo artist (no commas/feat) and higher songCount
+      const sorted = [...group].sort((a, b) => {
+        const aArt = cleanArtistName(a.artist);
+        const bArt = cleanArtistName(b.artist);
+        const aHasComma = aArt.includes(',') || aArt.includes('&');
+        const bHasComma = bArt.includes(',') || bArt.includes('&');
+        if (!aHasComma && bHasComma) return -1;
+        if (aHasComma && !bHasComma) return 1;
+        return (b.songCount || 0) - (a.songCount || 0);
+      });
+
+      const primary: UnifiedAlbum = { ...sorted[0] };
+      const allIds = group.map((a) => a.id);
+      primary.splitIds = allIds;
+      primary.songCount = group.reduce((sum, a) => sum + (a.songCount || 0), 0);
+      primary.duration = group.reduce((sum, a) => sum + (a.duration || 0), 0);
+
+      // Preserve coverArt if primary didn't have one
+      if (!primary.coverArt) {
+        const withCover = group.find((a) => a.coverArt);
+        if (withCover) primary.coverArt = withCover.coverArt;
+      }
+
+      for (const a of group) {
+        albumSplitMap.set(a.id, allIds);
+      }
+
+      result.push(primary);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Returns all split IDs associated with an album ID.
+ */
+export function getAlbumSplitIds(albumId: string): string[] {
+  return albumSplitMap.get(albumId) || [albumId];
 }
 
 /**
@@ -216,7 +221,8 @@ export function mergeAlbumSongs(albums: AlbumWithSongs[]): AlbumWithSongs | null
 
   for (const alb of albums) {
     if (alb?.song) {
-      for (const track of alb.song) {
+      const songList = Array.isArray(alb.song) ? alb.song : [alb.song];
+      for (const track of songList) {
         if (!seenTrackIds.has(track.id)) {
           seenTrackIds.add(track.id);
           allTracks.push(track);
