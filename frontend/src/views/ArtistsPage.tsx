@@ -2,21 +2,23 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Music2 } from 'lucide-react';
 import { useArtists, useArtistDetails } from '@/hooks/useLibrary';
 import { AlbumGrid } from '@/components/library/AlbumGrid';
-import { Music2 } from 'lucide-react';
+import { useUIStore } from '@/store/uiStore';
+import { cleanArtistName } from '@/lib/formatters';
 
 export function ArtistsPage() {
   const { data: artists, isLoading } = useArtists();
-  const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
+  const { selectedArtistId, openArtist, closeArtist } = useUIStore();
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   
   const { data: artistDetails, isLoading: isLoadingDetails } = useArtistDetails(selectedArtistId);
   
   // Group artists by first letter
   const groupedArtists = artists?.reduce((acc, artist) => {
-    const firstLetter = artist.name.charAt(0).toUpperCase();
+    const displayName = cleanArtistName(artist.name) || artist.name;
+    const firstLetter = displayName.charAt(0).toUpperCase();
     if (!acc[firstLetter]) {
       acc[firstLetter] = [];
     }
@@ -31,11 +33,13 @@ export function ArtistsPage() {
   
   // If artist is selected, show details
   if (selectedArtistId && artistDetails) {
+    const artistDisplayName = cleanArtistName(artistDetails.name) || artistDetails.name;
+
     return (
       <div className="space-y-8">
         {/* Back button */}
         <button
-          onClick={() => setSelectedArtistId(null)}
+          onClick={closeArtist}
           className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors text-white/70 hover:text-white"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -44,11 +48,11 @@ export function ArtistsPage() {
         
         {/* Artist header */}
         <div className="flex items-center gap-6">
-          <div className="w-32 h-32 rounded-full overflow-hidden bg-white/5 flex-shrink-0">
+          <div className="w-32 h-32 rounded-full overflow-hidden bg-white/5 flex-shrink-0 shadow-xl">
             {artistDetails.coverArt ? (
               <img
                 src={`/api/stream/cover/${artistDetails.coverArt}?size=300`}
-                alt={artistDetails.name}
+                alt={artistDisplayName}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -59,9 +63,9 @@ export function ArtistsPage() {
           </div>
           
           <div>
-            <h1 className="text-5xl font-bold text-white mb-2">{artistDetails.name}</h1>
+            <h1 className="text-5xl font-bold text-white mb-2">{artistDisplayName}</h1>
             <p className="text-white/50 text-lg">
-              {artistDetails.albumCount || 0} альбомов
+              {artistDetails.albumCount || artistDetails.album?.length || 0} альбомов
             </p>
           </div>
         </div>
@@ -124,40 +128,46 @@ export function ArtistsPage() {
       
       {/* Artists grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-        {filteredArtists?.map((artist) => (
-          <motion.div
-            key={artist.id}
-            whileHover={{ scale: 1.02 }}
-            className="group cursor-pointer"
-            onClick={() => setSelectedArtistId(artist.id)}
-          >
-            <div className="relative aspect-square rounded-full overflow-hidden bg-white/5 border border-white/10 mb-4">
-              {artist.coverArt ? (
-                <img
-                  src={`/api/stream/cover/${artist.coverArt}?size=300`}
-                  alt={artist.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Music2 className="w-12 h-12 text-white/30" />
+        {filteredArtists?.map((artist) => {
+          const displayName = cleanArtistName(artist.name) || artist.name;
+
+          return (
+            <motion.div
+              key={artist.id}
+              whileHover={{ scale: 1.02 }}
+              className="group cursor-pointer"
+              onClick={() => openArtist(artist.id)}
+            >
+              <div className="relative aspect-square rounded-full overflow-hidden bg-white/5 border border-white/10 mb-4">
+                {artist.coverArt ? (
+                  <img
+                    src={`/api/stream/cover/${artist.coverArt}?size=300`}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Music2 className="w-12 h-12 text-white/30" />
+                  </div>
+                )}
+                
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="text-white text-sm">Открыть</div>
                 </div>
-              )}
-              
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <div className="text-white text-sm">Открыть</div>
               </div>
-            </div>
-            
-            <div className="text-center">
-              <h3 className="text-white font-medium truncate">{artist.name}</h3>
-              <p className="text-white/50 text-sm">
-                {artist.albumCount || 0} альбомов
-              </p>
-            </div>
-          </motion.div>
-        ))}
+              
+              <div className="text-center">
+                <h3 className="text-white font-medium truncate" title={displayName}>
+                  {displayName}
+                </h3>
+                <p className="text-white/50 text-sm">
+                  {artist.albumCount || 0} альбомов
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
       
       {filteredArtists && filteredArtists.length === 0 && (

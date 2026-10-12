@@ -8,10 +8,11 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { api } from '@/api';
 import { Music, ListMusic, Plus, Play, ArrowLeft, Trash2 } from 'lucide-react';
 import { cleanArtistName } from '@/lib/formatters';
+import { useUIStore } from '@/store/uiStore';
 import type { Track } from '@/types/subsonic';
 
 export function PlaylistsPage() {
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const { selectedPlaylistId, openPlaylist, closePlaylist } = useUIStore();
   const [isCreating, setIsCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   
@@ -33,7 +34,7 @@ export function PlaylistsPage() {
     mutationFn: (id: string) => api.library.deletePlaylist(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['playlists'] });
-      setSelectedPlaylistId(null);
+      closePlaylist();
     },
   });
 
@@ -69,7 +70,7 @@ export function PlaylistsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => setSelectedPlaylistId(null)}
+            onClick={closePlaylist}
             className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -241,7 +242,7 @@ export function PlaylistsPage() {
             <motion.div
               key={playlist.id}
               whileHover={{ scale: 1.02 }}
-              onClick={() => setSelectedPlaylistId(playlist.id)}
+              onClick={() => openPlaylist(playlist.id)}
               className="group cursor-pointer"
             >
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 border border-white/10 mb-4 flex items-center justify-center group-hover:border-white/20 transition-all shadow-lg">

@@ -1,11 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
 import type { AlbumListType } from '@/api/library';
+import type { AlbumWithSongs } from '@/types/subsonic';
+import {
+  deduplicateAlbums,
+  getAlbumSplitIds,
+  mergeAlbumSongs,
+  deduplicateArtists,
+  getArtistCollabIds,
+} from '@/lib/libraryUtils';
 
 export function useAlbums(type: AlbumListType = 'newest', size: number = 50) {
   return useQuery({
     queryKey: ['albums', type, size],
-    queryFn: () => api.library.getAlbums(type, size),
+    queryFn: async () => {
+      const albums = await api.library.getAlbums(type, size);
+      return deduplicateAlbums(albums);
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000,
   });
@@ -14,7 +25,20 @@ export function useAlbums(type: AlbumListType = 'newest', size: number = 50) {
 export function useAlbumDetails(albumId: string | null) {
   return useQuery({
     queryKey: ['album', albumId],
-    queryFn: () => api.library.getAlbum(albumId!),
+    queryFn: async () => {
+      if (!albumId) return null;
+      const splitIds = getAlbumSplitIds(albumId);
+      if (splitIds.length <= 1) {
+        return api.library.getAlbum(albumId);
+      }
+
+      // Concurrently fetch all split parts of this album
+      const albumResults = await Promise.all(
+        splitIds.map((id) => api.library.getAlbum(id).catch(() => null))
+      );
+      const validAlbums = albumResults.filter((a): a is AlbumWithSongs => Boolean(a));
+      return mergeAlbumSongs(validAlbums) || api.library.getAlbum(albumId);
+    },
     enabled: !!albumId,
     staleTime: 5 * 60 * 1000,
   });
@@ -23,7 +47,10 @@ export function useAlbumDetails(albumId: string | null) {
 export function useArtists() {
   return useQuery({
     queryKey: ['artists'],
-    queryFn: () => api.library.getArtists(),
+    queryFn: async () => {
+      const artists = await api.library.getArtists();
+      return deduplicateArtists(artists);
+    },
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 20 * 60 * 1000,
   });
@@ -32,7 +59,37 @@ export function useArtists() {
 export function useArtistDetails(artistId: string | null) {
   return useQuery({
     queryKey: ['artist', artistId],
-    queryFn: () => api.library.getArtist(artistId!),
+    queryFn: async () => {
+      if (!artistId) return null;
+      const mainArtist = await api.library.getArtist(artistId);
+      const collabIds = getArtistCollabIds(artistId);
+
+      if (collabIds.length === 0) {
+        return {
+          ...mainArtist,
+          album: deduplicateAlbums(mainArtist.album || []),
+        };
+      }
+
+      // Fetch collab/duo entries to include duo albums under each artist
+      const collabResults = await Promise.all(
+        collabIds.map((id) => api.library.getArtist(id).catch(() => null))
+      );
+
+      const allAlbums = [...(mainArtist.album || [])];
+      for (const c of collabResults) {
+        if (c?.album) {
+          allAlbums.push(...c.album);
+        }
+      }
+
+      const unifiedAlbums = deduplicateAlbums(allAlbums);
+      return {
+        ...mainArtist,
+        album: unifiedAlbums,
+        albumCount: unifiedAlbums.length,
+      };
+    },
     enabled: !!artistId,
     staleTime: 10 * 60 * 1000,
   });
@@ -56,10 +113,18 @@ export function usePlaylistDetails(playlistId: string | null) {
 }
 
 export function useSearch(query: string) {
+  const trimmed = query.trim();
   return useQuery({
-    queryKey: ['search', query],
-    queryFn: () => api.library.search(query),
-    enabled: query.length > 2,
+    queryKey: ['search', trimmed],
+    queryFn: async () => {
+      const results = await api.library.search(trimmed);
+      return {
+        ...results,
+        album: results.album ? deduplicateAlbums(results.album) : [],
+        artist: results.artist ? deduplicateArtists(results.artist) : [],
+      };
+    },
+    enabled: trimmed.length >= 2,
     staleTime: 30 * 1000, // 30 seconds
   });
 }

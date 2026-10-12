@@ -22,6 +22,16 @@ interface UIState {
   previousTab: ActiveTab | null;
   openAlbum: (albumId: string) => void;
   closeAlbum: () => void;
+
+  // Artist navigation
+  selectedArtistId: string | null;
+  openArtist: (artistId: string) => void;
+  closeArtist: () => void;
+
+  // Playlist navigation
+  selectedPlaylistId: string | null;
+  openPlaylist: (playlistId: string) => void;
+  closePlaylist: () => void;
   
   // Settings
   backgroundMode: BackgroundMode;
@@ -61,6 +71,8 @@ export const useUIStore = create<UIState>()(
       isQueueOpen: false,
       
       selectedAlbumId: null,
+      selectedArtistId: null,
+      selectedPlaylistId: null,
       previousTab: null,
       
       backgroundMode: 'dynamic',
@@ -73,6 +85,8 @@ export const useUIStore = create<UIState>()(
       setActiveTab: (tab) => set((state) => ({ 
         activeTab: tab, 
         selectedAlbumId: tab === 'albums' ? null : state.selectedAlbumId,
+        selectedArtistId: tab === 'artists' ? null : state.selectedArtistId,
+        selectedPlaylistId: tab === 'playlists' ? null : state.selectedPlaylistId,
         previousTab: null 
       })),
 
@@ -85,6 +99,30 @@ export const useUIStore = create<UIState>()(
       closeAlbum: () => set((state) => ({
         selectedAlbumId: null,
         activeTab: state.previousTab || 'albums',
+        previousTab: null
+      })),
+
+      openArtist: (artistId) => set((state) => ({
+        selectedArtistId: artistId,
+        previousTab: state.activeTab !== 'artists' ? state.activeTab : state.previousTab,
+        activeTab: 'artists'
+      })),
+
+      closeArtist: () => set((state) => ({
+        selectedArtistId: null,
+        activeTab: state.previousTab || 'artists',
+        previousTab: null
+      })),
+
+      openPlaylist: (playlistId) => set((state) => ({
+        selectedPlaylistId: playlistId,
+        previousTab: state.activeTab !== 'playlists' ? state.activeTab : state.previousTab,
+        activeTab: 'playlists'
+      })),
+
+      closePlaylist: () => set((state) => ({
+        selectedPlaylistId: null,
+        activeTab: state.previousTab || 'playlists',
         previousTab: null
       })),
       
