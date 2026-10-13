@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
     
     print("✓ Database initialized")
     print("✓ HTTP client created")
+    print(f"✓ Navidrome mode: {settings.navidrome_network_mode} ({settings.navidrome_url})")
     print(f"✓ Server starting on http://localhost:8000")
     
     yield

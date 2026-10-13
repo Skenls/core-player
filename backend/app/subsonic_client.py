@@ -86,3 +86,14 @@ class SubsonicClient:
             raise HTTPException(status_code=502, detail=f"Navidrome streaming error: {str(e)}")
         
         return response
+
+    def get_stream_proxy_path(self, endpoint: str, **params) -> str:
+        """
+        Build internal Nginx acceleration URI (/_nd/rest/{endpoint}?...)
+        """
+        import urllib.parse
+        clean_params = {k: v for k, v in self.auth_params.items() if k != "f"}
+        clean_params.update({k: v for k, v in params.items() if v is not None})
+        qs = urllib.parse.urlencode(clean_params)
+        return f"/_nd/rest/{endpoint}?{qs}"
+

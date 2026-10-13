@@ -1,4 +1,4 @@
-from fastapi import Request, Depends, HTTPException, Cookie
+from fastapi import Request, Depends, HTTPException, Cookie, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
@@ -23,15 +23,17 @@ async def get_httpx_client(request: Request) -> httpx.AsyncClient:
 
 async def get_current_session(
     session_id: Optional[str] = Cookie(None, alias="session_id"),
+    session_token: Optional[str] = Query(None, alias="session_id"),
     db: AsyncSession = Depends(get_db)
 ) -> Session:
     """
-    Dependency to get current authenticated session from cookie
+    Dependency to get current authenticated session from cookie or query parameter
     """
-    if not session_id:
+    token = session_id or session_token
+    if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    session = await get_session_by_id(db, session_id)
+    session = await get_session_by_id(db, token)
     
     if not session:
         raise HTTPException(status_code=401, detail="Invalid or expired session")

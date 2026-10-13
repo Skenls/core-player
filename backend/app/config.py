@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     session_expire_days: int = Field(default=30, env="SESSION_EXPIRE_DAYS")
     
     # Navidrome connection
+    navidrome_network_mode: str = Field(default="local", env="NAVIDROME_NETWORK_MODE")
     navidrome_url: str = Field(default="http://localhost:4533", env="NAVIDROME_URL")
     navidrome_user: str = Field(default="skenls", env="NAVIDROME_USER")
     navidrome_pass: str | None = Field(default=None, env="NAVIDROME_PASS")

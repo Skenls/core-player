@@ -17,6 +17,14 @@ if [ -z "$ENCRYPTION_KEY" ]; then
     export ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 fi
 
+# Configure Nginx Navidrome upstream for accelerated X-Accel-Redirect streaming
+ND_URL="${NAVIDROME_URL:-http://127.0.0.1:4533}"
+ND_URL="${ND_URL%/}"
+echo "Configuring Nginx Navidrome upstream: ${ND_URL}/ (mode: ${NAVIDROME_NETWORK_MODE:-local})"
+if [ -f /etc/nginx/conf.d/default.conf ]; then
+    sed -i "s|__NAVIDROME_URL__|${ND_URL}|g" /etc/nginx/conf.d/default.conf
+fi
+
 # Start FastAPI backend with Uvicorn
 echo "Starting FastAPI backend on 127.0.0.1:8000..."
 cd /app/backend
