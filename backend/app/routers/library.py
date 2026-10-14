@@ -182,18 +182,60 @@ def deduplicate_albums_backend(albums: list[dict]) -> list[dict]:
 @router.get("/albums")
 async def get_albums(
     type: Literal["recent", "frequent", "random", "newest", "starred", "alphabeticalByName", "byYear", "byGenre"] = "newest",
-    size: int = Query(default=50, le=500),
+    size: int | None = Query(default=50, ge=0),
+    offset: int = Query(default=0, ge=0),
+    all: bool = Query(default=False, description="Fetch all albums across all pages"),
     user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
-    """Get list of albums, deduplicated by release title and artist"""
-    response = await client.get("getAlbumList2.view", type=type, size=size)
-    albums = response.get("albumList2", {}).get("album", [])
-    if isinstance(albums, dict):
-        albums = [albums]
-    elif not isinstance(albums, list):
-        albums = []
-    return {"albums": deduplicate_albums_backend(albums)}
+    """
+    Get list of albums, deduplicated by release title and artist.
+    If all=True or size=0, cyclically fetches all albums across all pages (500 items per page).
+    """
+    PAGE_SIZE = 500
+    should_fetch_all = all or size == 0
+    all_albums: list[dict] = []
+    current_offset = offset
+
+    while True:
+        fetch_size = PAGE_SIZE if should_fetch_all else min(PAGE_SIZE, (size or PAGE_SIZE) - len(all_albums))
+        if fetch_size <= 0:
+            break
+
+        response = await client.get("getAlbumList2.view", type=type, size=fetch_size, offset=current_offset)
+        page = response.get("albumList2", {}).get("album", [])
+        if isinstance(page, dict):
+            page = [page]
+        elif not isinstance(page, list):
+            page = []
+
+        if not page:
+            break
+
+        all_albums.extend(page)
+        current_offset += len(page)
+
+        # Break if last page reached (received fewer items than requested)
+        if len(page) < fetch_size:
+            break
+
+        # If not fetching all, break once requested size reached
+        if not should_fetch_all and size is not None and len(all_albums) >= size:
+            break
+
+    deduped = deduplicate_albums_backend(all_albums)
+    return {"albums": deduped, "total": len(deduped)}
+
+
+@router.get("/albums/all")
+async def get_all_albums(
+    type: Literal["recent", "frequent", "random", "newest", "starred", "alphabeticalByName", "byYear", "byGenre"] = "alphabeticalByName",
+    user: User = Depends(get_current_user),
+    client: SubsonicClient = Depends(get_subsonic_client)
+):
+    """Convenience endpoint to get ALL albums across all pages in a single request"""
+    return await get_albums(type=type, size=0, offset=0, all=True, user=user, client=client)
+
 
 
 @router.get("/albums/{album_id}")
@@ -370,6 +412,68 @@ async def get_random_tracks(
     response = await client.get("getRandomSongs.view", size=size)
     tracks = response.get("randomSongs", {}).get("song", [])
     return {"tracks": tracks}
+
+
+@router.get("/tracks")
+async def get_tracks(
+    size: int | None = Query(default=None, ge=0, description="Max tracks to return. If omitted, 0, or all=true, fetches all tracks."),
+    offset: int = Query(default=0, ge=0, description="Offset for pagination"),
+    all: bool = Query(default=True, description="Fetch all tracks across all pages (defaults to True)"),
+    user: User = Depends(get_current_user),
+    client: SubsonicClient = Depends(get_subsonic_client)
+):
+    """
+    Get tracks from library in a single request.
+    Cyclically queries Navidrome in 500-track pages until all tracks are fetched.
+    """
+    PAGE_SIZE = 500
+    should_fetch_all = all or size is None or size == 0
+    all_tracks: list[dict] = []
+    current_offset = offset
+
+    while True:
+        fetch_size = PAGE_SIZE if should_fetch_all else min(PAGE_SIZE, (size or PAGE_SIZE) - len(all_tracks))
+        if fetch_size <= 0:
+            break
+
+        response = await client.get(
+            "search3.view",
+            query="",
+            songCount=fetch_size,
+            songOffset=current_offset,
+            artistCount=0,
+            albumCount=0
+        )
+        page = response.get("searchResult3", {}).get("song", [])
+        if isinstance(page, dict):
+            page = [page]
+        elif not isinstance(page, list):
+            page = []
+
+        if not page:
+            break
+
+        all_tracks.extend(page)
+        current_offset += len(page)
+
+        # Break if last page reached (fewer items than requested)
+        if len(page) < fetch_size:
+            break
+
+        # If not fetching all, break once requested size reached
+        if not should_fetch_all and size is not None and len(all_tracks) >= size:
+            break
+
+    return {"tracks": all_tracks, "total": len(all_tracks)}
+
+
+@router.get("/tracks/all")
+async def get_all_tracks(
+    user: User = Depends(get_current_user),
+    client: SubsonicClient = Depends(get_subsonic_client)
+):
+    """Convenience endpoint to get ALL tracks across all pages in a single request"""
+    return await get_tracks(size=None, offset=0, all=True, user=user, client=client)
 
 
 @router.post("/scrobble")

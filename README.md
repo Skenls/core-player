@@ -245,9 +245,12 @@ npm run dev
 - `GET /api/stream/custom-background` — отдача сохраненного пользовательского фона с HTTP-кэшированием.
 
 ### Музыкальная библиотека (Subsonic прокси)
-- `GET /api/library/albums` — получение альбомов (`?type=newest|alphabeticalByName|random|recent`).
-- `GET /api/library/albums/{album_id}` — информация об альбоме со списком треков.
-- `GET /api/library/artists` — список артистов библиотеки.
+- `GET /api/library/albums` — получение альбомов (`?type=newest|alphabeticalByName|random|recent&size=50&offset=0&all=false`). При `all=true` или `size=0` циклически запрашивает у Navidrome все страницы (по 500 элементов) и отдает всю коллекцию альбомов одним запросом.
+- `GET /api/library/albums/all` — получение абсолютно всех альбомов библиотеки одним запросом (`?type=alphabeticalByName`).
+- `GET /api/library/albums/{album_id}` — информация об альбоме со списком треков (с объединением дубликатов/дуэтов).
+- `GET /api/library/tracks` — получение всех треков библиотеки одним запросом (`?all=true&size=...&offset=...`). Автоматически циклически опрашивает Navidrome порциями по 500 треков и возвращает полный список.
+- `GET /api/library/tracks/all` — получение абсолютно всех треков библиотеки одним запросом.
+- `GET /api/library/artists` — список артистов библиотеки (с фильтрацией юридических ФИО).
 - `GET /api/library/artists/{artist_id}` — дискография артиста.
 - `GET /api/library/random` — подборка случайных треков.
 - `GET /api/library/search` — глобальный поиск по трекам, альбомам и артистам.

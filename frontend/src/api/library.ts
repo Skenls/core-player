@@ -16,11 +16,21 @@ export const libraryApi = {
   /**
    * Get list of albums
    */
-  async getAlbums(type: AlbumListType = 'newest', size: number = 50): Promise<Album[]> {
+  async getAlbums(type: AlbumListType = 'newest', size: number = 50, all: boolean = false): Promise<Album[]> {
     const { data } = await axiosClient.get<{ albums: Album[] }>('/library/albums', {
-      params: { type, size },
+      params: { type, size, all },
     });
     return data.albums;
+  },
+
+  /**
+   * Get all tracks across entire library (or paginated slice)
+   */
+  async getTracks(all: boolean = true, size?: number, offset?: number): Promise<Track[]> {
+    const { data } = await axiosClient.get<{ tracks: Track[] }>('/library/tracks', {
+      params: { all, size, offset },
+    });
+    return data.tracks;
   },
 
   /**

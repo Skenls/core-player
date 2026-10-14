@@ -10,11 +10,11 @@ import {
   getArtistCollabIds,
 } from '@/lib/libraryUtils';
 
-export function useAlbums(type: AlbumListType = 'newest', size: number = 50) {
+export function useAlbums(type: AlbumListType = 'newest', size: number = 50, all: boolean = false) {
   return useQuery({
-    queryKey: ['albums', type, size],
+    queryKey: ['albums', type, size, all],
     queryFn: async () => {
-      const albums = await api.library.getAlbums(type, size);
+      const albums = await api.library.getAlbums(type, size, all);
       return deduplicateAlbums(albums);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -134,6 +134,15 @@ export function useRandomTracks(size: number = 50) {
     queryKey: ['random', size],
     queryFn: () => api.library.getRandomTracks(size),
     staleTime: 5 * 60 * 1000, // 5 minutes to prevent re-querying and flickering on navigation
+    gcTime: 15 * 60 * 1000,
+  });
+}
+
+export function useTracks(all: boolean = true) {
+  return useQuery({
+    queryKey: ['tracks', all],
+    queryFn: () => api.library.getTracks(all),
+    staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
   });
 }

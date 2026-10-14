@@ -1,10 +1,10 @@
 'use client';
 
 import { AlbumGrid } from '@/components/library/AlbumGrid';
-import { useRandomTracks } from '@/hooks/useLibrary';
+import { useTracks } from '@/hooks/useLibrary';
 
 export function TracksPage() {
-  const { data: tracks, isLoading } = useRandomTracks(100);
+  const { data: tracks, isLoading } = useTracks();
   
   return (
     <div className="space-y-8">
