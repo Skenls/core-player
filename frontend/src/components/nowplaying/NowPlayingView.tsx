@@ -67,8 +67,15 @@ export function NowPlayingView() {
 
   const isFavorite = currentTrack ? favoriteIds?.tracks.includes(currentTrack.id) : false;
 
-  const { data: lyrics } = useQuery({
-    queryKey: ['lyrics', currentTrack?.id],
+  const [lyricsRetryTrigger, setLyricsRetryTrigger] = useState(0);
+
+  const {
+    data: lyrics,
+    isLoading: isLyricsLoading,
+    isFetching: isLyricsFetching,
+    refetch: refetchLyrics
+  } = useQuery({
+    queryKey: ['lyrics', currentTrack?.id, lyricsRetryTrigger],
     queryFn: () => currentTrack 
       ? api.lyrics.getLyrics(
           currentTrack.id, 
@@ -79,8 +86,38 @@ export function NowPlayingView() {
         )
       : null,
     enabled: !!currentTrack && isNowPlayingOpen,
-    staleTime: 1000 * 60 * 10,
+    staleTime: (query) => {
+      const data = query.state.data;
+      if (data && (data.synced || (data.lines && data.lines.length > 0) || data.text)) {
+        return 1000 * 60 * 10;
+      }
+      return 0; // Don't cache empty lyrics
+    },
   });
+
+  // Automatically retry up to 2 times with a 2-second delay if lyrics arrive late
+  const autoRetryCountRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (!currentTrack?.id || !isNowPlayingOpen || isLyricsFetching) return;
+    const trackId = currentTrack.id;
+    const hasLyrics = Boolean(lyrics && (lyrics.synced || (lyrics.lines && lyrics.lines.length > 0) || lyrics.text));
+    const retries = autoRetryCountRef.current[trackId] || 0;
+
+    if (!hasLyrics && lyrics !== undefined && retries < 2) {
+      const timer = setTimeout(() => {
+        autoRetryCountRef.current[trackId] = retries + 1;
+        refetchLyrics();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [lyrics, currentTrack?.id, isNowPlayingOpen, isLyricsFetching, refetchLyrics]);
+
+  const handleManualRetryLyrics = () => {
+    if (currentTrack?.id) {
+      autoRetryCountRef.current[currentTrack.id] = 0;
+    }
+    setLyricsRetryTrigger((prev) => prev + 1);
+  };
 
   // Handle escape key to close
   useEffect(() => {
@@ -369,7 +406,11 @@ export function NowPlayingView() {
                   transition={{ delay: 0.15, duration: 0.4 }}
                   className="flex-1 h-[520px] max-w-xl"
                 >
-                  <LyricsView lyrics={lyrics} />
+                  <LyricsView 
+                    lyrics={lyrics} 
+                    isLoading={isLyricsFetching || isLyricsLoading}
+                    onRetry={handleManualRetryLyrics}
+                  />
                 </motion.div>
 
               </div>

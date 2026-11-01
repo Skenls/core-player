@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { useLyricsSync } from '@/hooks/useLyricsSync';
-import { Loader2, Music2, RotateCcw } from 'lucide-react';
+import { Loader2, Music2, RotateCcw, RotateCw } from 'lucide-react';
 
 interface LyricsData {
   text: string;
@@ -13,9 +13,11 @@ interface LyricsData {
 
 interface LyricsViewProps {
   lyrics?: LyricsData | null;
+  isLoading?: boolean;
+  onRetry?: () => void;
 }
 
-export function LyricsView({ lyrics }: LyricsViewProps) {
+export function LyricsView({ lyrics, isLoading, onRetry }: LyricsViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   
@@ -95,19 +97,30 @@ export function LyricsView({ lyrics }: LyricsViewProps) {
     setIsUserScrolling(false);
   };
 
-  if (lyrics === undefined) {
+  if (lyrics === undefined || (isLoading && (!lyrics || (!lyrics.text && (!lyrics.lines || lyrics.lines.length === 0))))) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
+      <div className="h-full flex flex-col items-center justify-center gap-3 text-white/50">
+        <Loader2 className="w-8 h-8 text-white/60 animate-spin" />
+        <p className="text-sm font-medium tracking-wide">Поиск текста песни...</p>
       </div>
     );
   }
   
   if (!lyrics || (!lyrics.text && (!lyrics.lines || lyrics.lines.length === 0))) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 text-white/30">
-        <Music2 className="w-12 h-12 stroke-[1.5]" />
-        <p className="text-lg font-medium">Текст песни недоступен</p>
+      <div className="h-full flex flex-col items-center justify-center gap-3 text-white/40">
+        <Music2 className="w-12 h-12 stroke-[1.5] text-white/30" />
+        <p className="text-lg font-medium text-white/60">Текст песни недоступен</p>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 mt-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white/80 hover:text-white transition-all text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Повторить поиск</span>
+          </button>
+        )}
       </div>
     );
   }

@@ -44,6 +44,12 @@ interface PlayerState {
   updateProgress: (currentTime: number, duration: number) => void;
 }
 
+const getStreamUrl = (trackId: string): string => {
+  const { audioCodec } = useUIStore.getState();
+  const codecParam = audioCodec && audioCodec !== 'raw' ? `?format=${audioCodec}` : '';
+  return `/api/stream/${trackId}${codecParam}`;
+};
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrack: null,
   isPlaying: false,
@@ -59,17 +65,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   
   setCurrentTrack: (track) => {
     set({ currentTrack: track });
-    const { audioCodec } = useUIStore.getState();
-    const codecParam = audioCodec && audioCodec !== 'raw' ? `?format=${audioCodec}` : '';
-    audioService.setSrc(`/api/stream/${track.id}${codecParam}`);
+    audioService.setSrc(getStreamUrl(track.id));
   },
 
   reloadCodec: () => {
     const { currentTrack, currentTime, isPlaying } = get();
     if (!currentTrack) return;
-    const { audioCodec } = useUIStore.getState();
-    const codecParam = audioCodec && audioCodec !== 'raw' ? `?format=${audioCodec}` : '';
-    audioService.setSrc(`/api/stream/${currentTrack.id}${codecParam}`);
+    audioService.setSrc(getStreamUrl(currentTrack.id));
     audioService.seek(currentTime);
     if (isPlaying) {
       audioService.play().catch(() => {});
@@ -138,7 +140,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrack: nextTrack,
       currentTime: 0
     });
-    audioService.setSrc(`/api/stream/${nextTrack.id}`);
+    audioService.setSrc(getStreamUrl(nextTrack.id));
     audioService.play();
   },
   
@@ -159,7 +161,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrack: prevTrack,
       currentTime: 0
     });
-    audioService.setSrc(`/api/stream/${prevTrack.id}`);
+    audioService.setSrc(getStreamUrl(prevTrack.id));
     audioService.play();
   },
   
@@ -174,7 +176,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     });
     
     if (track) {
-      audioService.setSrc(`/api/stream/${track.id}`);
+      audioService.setSrc(getStreamUrl(track.id));
     }
   },
   

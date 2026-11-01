@@ -67,7 +67,7 @@ async def get_custom_background():
     raise HTTPException(status_code=404, detail="No custom background uploaded")
 
 
-@router.get("/{track_id}")
+@router.api_route("/{track_id}", methods=["GET", "HEAD"])
 async def stream_audio(
     track_id: str,
     request: Request,
@@ -79,6 +79,7 @@ async def stream_audio(
     Stream audio with optional transcoding format, authentication, and HTTP Range support.
     Supports Nginx X-Accel-Redirect for high-performance zero-copy proxying,
     with seamless StreamingResponse fallback for local development.
+    Supports both GET and HEAD requests.
     """
     params = {"id": track_id}
     if format and format != "raw":
@@ -92,14 +93,17 @@ async def stream_audio(
 
     if supports_x_accel:
         proxy_uri = client.get_stream_proxy_path("stream.view", **params)
-        default_mime = MIME_TYPES.get(format or "mp3", "audio/mpeg")
+        headers = {
+            "X-Accel-Redirect": proxy_uri,
+            "Accept-Ranges": "bytes",
+        }
+        # Only override Content-Type if explicit transcode format is requested
+        if format and format != "raw" and format in MIME_TYPES:
+            headers["Content-Type"] = MIME_TYPES[format]
+
         return Response(
             status_code=200,
-            headers={
-                "X-Accel-Redirect": proxy_uri,
-                "Content-Type": default_mime,
-                "Accept-Ranges": "bytes",
-            }
+            headers=headers
         )
 
     # Fallback for local development without Nginx reverse proxy
@@ -147,7 +151,7 @@ async def stream_audio(
     )
 
 
-@router.get("/cover/{cover_id}")
+@router.api_route("/cover/{cover_id}", methods=["GET", "HEAD"])
 async def get_cover(
     cover_id: str,
     request: Request,
@@ -157,6 +161,7 @@ async def get_cover(
 ):
     """
     Get album cover art with authentication and disk caching.
+    Supports both GET and HEAD requests.
     """
     supports_x_accel = (
         request.headers.get("x-accel-supported") == "true"

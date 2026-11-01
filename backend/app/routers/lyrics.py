@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from typing import Optional
 from app.dependencies import get_subsonic_client, get_httpx_client
 from app.subsonic_client import SubsonicClient
@@ -14,6 +14,7 @@ async def get_track_lyrics(
     track_id: str,
     artist: str,
     title: str,
+    response: Response,
     album: Optional[str] = None,
     duration: Optional[int] = None,
     client: SubsonicClient = Depends(get_subsonic_client),
@@ -33,5 +34,10 @@ async def get_track_lyrics(
         subsonic_client=client,
         httpx_client=httpx_client
     )
+    
+    if lyrics and (lyrics.get("synced") or lyrics.get("text")):
+        response.headers["Cache-Control"] = "private, max-age=86400"
+    else:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     
     return lyrics
