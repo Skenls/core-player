@@ -72,6 +72,7 @@ async def stream_audio(
     track_id: str,
     request: Request,
     format: str | None = Query(default=None),
+    estimateContentLength: bool = Query(default=True),
     user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
@@ -84,6 +85,8 @@ async def stream_audio(
     params = {"id": track_id}
     if format and format != "raw":
         params["format"] = format
+    if estimateContentLength:
+        params["estimateContentLength"] = "true"
 
     # Check if accelerated zero-copy streaming is supported
     supports_x_accel = (
@@ -128,12 +131,11 @@ async def stream_audio(
         "Accept-Ranges": "bytes"
     }
 
-    # Handle partial content (206)
-    if navidrome_response.status_code == 206:
-        if "content-range" in navidrome_response.headers:
-            response_headers["Content-Range"] = navidrome_response.headers["content-range"]
-        if "content-length" in navidrome_response.headers:
-            response_headers["Content-Length"] = navidrome_response.headers["content-length"]
+    # Pass Content-Length and Content-Range if returned by Navidrome
+    if "content-length" in navidrome_response.headers:
+        response_headers["Content-Length"] = navidrome_response.headers["content-length"]
+    if "content-range" in navidrome_response.headers:
+        response_headers["Content-Range"] = navidrome_response.headers["content-range"]
 
     async def stream_with_cleanup():
         """Generator with guaranteed cleanup"""
