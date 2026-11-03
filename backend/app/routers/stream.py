@@ -91,7 +91,11 @@ async def stream_audio(
         # '-sample_fmt s16', which is rejected by FFmpeg's ALAC encoder (requires s16p/s32p).
         # Using 'm4a' maps to the ALAC transcoding profile without triggering this flag.
         params["format"] = "m4a" if format == "alac" else format
-    if estimateContentLength:
+    # For lossless formats (ALAC, FLAC), never send estimateContentLength to Navidrome.
+    # Navidrome estimates size based on a fixed 256kbps bitrate. When the lossless encoder
+    # produces more bytes than estimated, Go's net/http server panics with
+    # "http: wrote more than the declared Content-Length" and abruptly terminates the stream.
+    if estimateContentLength and format not in ("alac", "m4a", "flac"):
         params["estimateContentLength"] = "true"
 
     # Check if accelerated zero-copy streaming is supported
@@ -137,8 +141,8 @@ async def stream_audio(
         "Accept-Ranges": "bytes"
     }
 
-    # Pass Content-Length and Content-Range if returned by Navidrome
-    if "content-length" in navidrome_response.headers:
+    # Pass Content-Length and Content-Range if returned by Navidrome (omit for lossless transcodes)
+    if "content-length" in navidrome_response.headers and format not in ("alac", "m4a", "flac"):
         response_headers["Content-Length"] = navidrome_response.headers["content-length"]
     if "content-range" in navidrome_response.headers:
         response_headers["Content-Range"] = navidrome_response.headers["content-range"]
