@@ -14,6 +14,8 @@ MIME_TYPES = {
     "opus": "audio/ogg",
     "ogg": "audio/ogg",
     "flac": "audio/flac",
+    "aac": "audio/aac",
+    "alac": "audio/mp4",
     "raw": "audio/mpeg"
 }
 
