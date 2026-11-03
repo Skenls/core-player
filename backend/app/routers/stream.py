@@ -16,6 +16,7 @@ MIME_TYPES = {
     "flac": "audio/flac",
     "aac": "audio/aac",
     "alac": "audio/mp4",
+    "m4a": "audio/mp4",
     "raw": "audio/mpeg"
 }
 
@@ -86,7 +87,10 @@ async def stream_audio(
     """
     params = {"id": track_id}
     if format and format != "raw":
-        params["format"] = format
+        # Navidrome's internal transcoder has a bug with target format 'alac' where it injects
+        # '-sample_fmt s16', which is rejected by FFmpeg's ALAC encoder (requires s16p/s32p).
+        # Using 'm4a' maps to the ALAC transcoding profile without triggering this flag.
+        params["format"] = "m4a" if format == "alac" else format
     if estimateContentLength:
         params["estimateContentLength"] = "true"
 
