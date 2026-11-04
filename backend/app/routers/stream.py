@@ -15,8 +15,6 @@ MIME_TYPES = {
     "ogg": "audio/ogg",
     "flac": "audio/flac",
     "aac": "audio/aac",
-    "alac": "audio/mp4",
-    "m4a": "audio/mp4",
     "raw": "audio/mpeg"
 }
 
@@ -90,11 +88,11 @@ async def stream_audio(
     if format and format != "raw":
         params["format"] = format
 
-    # For lossless formats (ALAC, FLAC), set maxBitRate to 0 (unlimited)
+    # For lossless FLAC, set maxBitRate to 0 (unlimited)
     # to prevent Navidrome from capping at default player bitrate (e.g. 256kbps).
     if maxBitRate is not None:
         params["maxBitRate"] = str(maxBitRate)
-    elif format in ("alac", "flac"):
+    elif format == "flac":
         params["maxBitRate"] = "0"
 
     # estimateContentLength defaults to False.

@@ -46,7 +46,8 @@ interface PlayerState {
 
 const getStreamUrl = (trackId: string): string => {
   const { audioCodec } = useUIStore.getState();
-  const codecParam = audioCodec && audioCodec !== 'raw' ? `?format=${audioCodec}` : '';
+  const validCodec = (audioCodec as string) === 'alac' ? 'flac' : audioCodec;
+  const codecParam = validCodec && validCodec !== 'raw' ? `?format=${validCodec}` : '';
   return `/api/stream/${trackId}${codecParam}`;
 };
 

@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 type ActiveTab = 'home' | 'favorites' | 'tracks' | 'artists' | 'albums' | 'playlists' | 'settings';
 export type BackgroundMode = 'dynamic' | 'custom';
-export type AudioCodec = 'mp3' | 'raw' | 'opus' | 'flac' | 'aac' | 'alac';
+export type AudioCodec = 'mp3' | 'raw' | 'opus' | 'flac' | 'aac';
 
 interface UIState {
   // Navigation
