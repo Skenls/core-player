@@ -5,6 +5,7 @@ import time
 from app.dependencies import get_subsonic_client, get_current_user
 from app.subsonic_client import SubsonicClient
 from app.models import User
+from app.stream_params import build_stream_params
 
 
 router = APIRouter(prefix="/stream", tags=["stream"])
@@ -85,26 +86,13 @@ async def stream_audio(
     with seamless StreamingResponse fallback for local development.
     Supports both GET and HEAD requests.
     """
-    params = {"id": track_id}
-    if format and format != "raw":
-        params["format"] = format
-
-    if timeOffset is not None:
-        params["timeOffset"] = str(timeOffset)
-
-    # For lossless FLAC, set maxBitRate to 0 (unlimited)
-    # to prevent Navidrome from capping at default player bitrate (e.g. 256kbps).
-    if maxBitRate is not None:
-        params["maxBitRate"] = str(maxBitRate)
-    elif format == "flac":
-        params["maxBitRate"] = "0"
-
-    # estimateContentLength defaults to False.
-    # When enabled, Navidrome estimates size based on a static bitrate formula.
-    # For live/transcoded streams, this corrupts track duration in players (adding phantom seconds/minutes)
-    # and causes "Error sending transcoded file" when FFmpeg writes more bytes than estimated.
-    if estimateContentLength:
-        params["estimateContentLength"] = "true"
+    params = build_stream_params(
+        track_id=track_id,
+        format=format,
+        max_bit_rate=maxBitRate,
+        time_offset=timeOffset,
+        estimate_content_length=estimateContentLength,
+    )
 
     # Check if accelerated zero-copy streaming is supported
     supports_x_accel = (
