@@ -75,7 +75,8 @@ async def stream_audio(
     track_id: str,
     request: Request,
     format: str | None = Query(default=None),
-    estimateContentLength: bool = Query(default=True),
+    maxBitRate: int | None = Query(default=None),
+    estimateContentLength: bool = Query(default=False),
     user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
 ):
@@ -87,15 +88,20 @@ async def stream_audio(
     """
     params = {"id": track_id}
     if format and format != "raw":
-        # Navidrome's internal transcoder has a bug with target format 'alac' where it injects
-        # '-sample_fmt s16', which is rejected by FFmpeg's ALAC encoder (requires s16p/s32p).
-        # Using 'm4a' maps to the ALAC transcoding profile without triggering this flag.
-        params["format"] = "m4a" if format == "alac" else format
-    # For lossless formats (ALAC, FLAC), never send estimateContentLength to Navidrome.
-    # Navidrome estimates size based on a fixed 256kbps bitrate. When the lossless encoder
-    # produces more bytes than estimated, Go's net/http server panics with
-    # "http: wrote more than the declared Content-Length" and abruptly terminates the stream.
-    if estimateContentLength and format not in ("alac", "m4a", "flac"):
+        params["format"] = format
+
+    # For lossless formats (ALAC, FLAC), set maxBitRate to 0 (unlimited)
+    # to prevent Navidrome from capping at default player bitrate (e.g. 256kbps).
+    if maxBitRate is not None:
+        params["maxBitRate"] = str(maxBitRate)
+    elif format in ("alac", "flac"):
+        params["maxBitRate"] = "0"
+
+    # estimateContentLength defaults to False.
+    # When enabled, Navidrome estimates size based on a static bitrate formula.
+    # For live/transcoded streams, this corrupts track duration in players (adding phantom seconds/minutes)
+    # and causes "Error sending transcoded file" when FFmpeg writes more bytes than estimated.
+    if estimateContentLength:
         params["estimateContentLength"] = "true"
 
     # Check if accelerated zero-copy streaming is supported
@@ -141,8 +147,8 @@ async def stream_audio(
         "Accept-Ranges": "bytes"
     }
 
-    # Pass Content-Length and Content-Range if returned by Navidrome (omit for lossless transcodes)
-    if "content-length" in navidrome_response.headers and format not in ("alac", "m4a", "flac"):
+    # Pass Content-Length and Content-Range if returned by Navidrome
+    if "content-length" in navidrome_response.headers:
         response_headers["Content-Length"] = navidrome_response.headers["content-length"]
     if "content-range" in navidrome_response.headers:
         response_headers["Content-Range"] = navidrome_response.headers["content-range"]

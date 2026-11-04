@@ -388,6 +388,8 @@ export function SettingsModal() {
                       { value: 'raw', label: 'RAW (Оригинал)', desc: 'Без транскодирования, исходный файл' },
                       { value: 'opus', label: 'Opus', desc: 'Современный, высокое качество при малом размере' },
                       { value: 'flac', label: 'FLAC', desc: 'Lossless без потерь качества' },
+                      { value: 'aac', label: 'AAC', desc: 'Оптимизирован для мобильных устройств (ADTS)' },
+                      { value: 'alac', label: 'ALAC', desc: 'Apple Lossless, студийный звук без потерь' },
                     ].map((codec) => (
                       <button
                         key={codec.value}

@@ -64,7 +64,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   seekRequestedTime: null,
   
   setCurrentTrack: (track) => {
-    set({ currentTrack: track });
+    set({
+      currentTrack: track,
+      duration: track.duration || 0,
+      currentTime: 0
+    });
     audioService.setSrc(getStreamUrl(track.id));
   },
 

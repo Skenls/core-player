@@ -27,8 +27,16 @@ export function useAudioEngine() {
   useEffect(() => {
     const audio = audioService.getAudio();
     
+    const getExactDuration = () => {
+      const track = usePlayerStore.getState().currentTrack;
+      if (track?.duration && track.duration > 0) {
+        return track.duration;
+      }
+      return audio.duration && isFinite(audio.duration) ? audio.duration : 0;
+    };
+
     const handleTimeUpdate = () => {
-      updateProgress(audio.currentTime, audio.duration);
+      updateProgress(audio.currentTime, getExactDuration());
     };
     
     const handleEnded = () => {
@@ -49,7 +57,7 @@ export function useAudioEngine() {
     };
     
     const handleCanPlay = () => {
-      updateProgress(audio.currentTime, audio.duration);
+      updateProgress(audio.currentTime, getExactDuration());
     };
     
     audio.addEventListener('timeupdate', handleTimeUpdate);
