@@ -13,7 +13,6 @@ export interface PlayerState {
   originalQueue: Track[];
   shuffle: boolean;
   repeat: RepeatMode;
-  seekRequestedTime: number | null;
 }
 
 export interface QueueItem extends Track {

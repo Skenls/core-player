@@ -4,7 +4,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { cleanArtistName } from '@/lib/formatters';
 
 export function useAudioEngine() {
-  const { currentTrack, nextTrack, updateProgress, repeat, seekRequestedTime, clearSeekRequest } = usePlayerStore();
+  const { currentTrack, nextTrack, updateProgress, repeat } = usePlayerStore();
   
   // Initialize audio service
   useEffect(() => {
@@ -15,14 +15,6 @@ export function useAudioEngine() {
     };
   }, []);
   
-  // Handle seek requests from store
-  useEffect(() => {
-    if (seekRequestedTime !== null) {
-      audioService.seek(seekRequestedTime);
-      clearSeekRequest();
-    }
-  }, [seekRequestedTime, clearSeekRequest]);
-  
   // Event listeners
   useEffect(() => {
     const audio = audioService.getAudio();
@@ -32,11 +24,11 @@ export function useAudioEngine() {
       if (track?.duration && track.duration > 0) {
         return track.duration;
       }
-      return audio.duration && isFinite(audio.duration) ? audio.duration : 0;
+      return audioService.getDuration();
     };
 
     const handleTimeUpdate = () => {
-      updateProgress(audio.currentTime, getExactDuration());
+      updateProgress(audioService.getCurrentTime(), getExactDuration());
     };
     
     const handleEnded = () => {
@@ -57,7 +49,7 @@ export function useAudioEngine() {
     };
     
     const handleCanPlay = () => {
-      updateProgress(audio.currentTime, getExactDuration());
+      updateProgress(audioService.getCurrentTime(), getExactDuration());
     };
     
     audio.addEventListener('timeupdate', handleTimeUpdate);

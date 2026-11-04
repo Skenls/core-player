@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { audioService } from '@/lib/audioService';
+import { shouldUseOffsetSeek } from '@/lib/streamSeek';
 import { useUIStore } from '@/store/uiStore';
 import type { Track } from '@/types/subsonic';
 import type { RepeatMode } from '@/types/player';
@@ -17,16 +18,13 @@ interface PlayerState {
   
   shuffle: boolean;
   repeat: RepeatMode;
-  
-  seekRequestedTime: number | null;
-  
+
   setCurrentTrack: (track: Track) => void;
   reloadCodec: () => void;
   play: () => void;
   pause: () => void;
   togglePlayPause: () => void;
   seek: (time: number) => void;
-  clearSeekRequest: () => void;
   setVolume: (volume: number) => void;
   
   nextTrack: () => void;
@@ -44,11 +42,14 @@ interface PlayerState {
   updateProgress: (currentTime: number, duration: number) => void;
 }
 
-const getStreamUrl = (trackId: string): string => {
+const getStreamSource = (track: Track) => {
   const { audioCodec } = useUIStore.getState();
   const validCodec = (audioCodec as string) === 'alac' ? 'flac' : audioCodec;
   const codecParam = validCodec && validCodec !== 'raw' ? `?format=${validCodec}` : '';
-  return `/api/stream/${trackId}${codecParam}`;
+  return {
+    url: `/api/stream/${track.id}${codecParam}`,
+    offsetSeek: shouldUseOffsetSeek(validCodec === 'raw' ? null : validCodec, track.suffix)
+  };
 };
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -62,22 +63,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   originalQueue: [],
   shuffle: false,
   repeat: 'off',
-  seekRequestedTime: null,
-  
+
   setCurrentTrack: (track) => {
     set({
       currentTrack: track,
       duration: track.duration || 0,
       currentTime: 0
     });
-    audioService.setSrc(getStreamUrl(track.id));
+    const source = getStreamSource(track);
+    audioService.setSrc(source.url, { offsetSeek: source.offsetSeek });
   },
 
   reloadCodec: () => {
     const { currentTrack, currentTime, isPlaying } = get();
     if (!currentTrack) return;
-    audioService.setSrc(getStreamUrl(currentTrack.id));
-    audioService.seek(currentTime);
+    const source = getStreamSource(currentTrack);
+    audioService.setSrc(source.url, { offsetSeek: source.offsetSeek, startAt: currentTime });
     if (isPlaying) {
       audioService.play().catch(() => {});
     }
@@ -105,12 +106,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   
   seek: (time) => {
-    set({ seekRequestedTime: time, currentTime: time });
+    set({ currentTime: time });
     audioService.seek(time);
   },
-  
-  clearSeekRequest: () => set({ seekRequestedTime: null }),
-  
+
   setVolume: (volume) => {
     const clampedVolume = Math.max(0, Math.min(1, volume));
     set({ volume: clampedVolume });
@@ -145,7 +144,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrack: nextTrack,
       currentTime: 0
     });
-    audioService.setSrc(getStreamUrl(nextTrack.id));
+    const source = getStreamSource(nextTrack);
+    audioService.setSrc(source.url, { offsetSeek: source.offsetSeek });
     audioService.play();
   },
   
@@ -166,7 +166,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrack: prevTrack,
       currentTime: 0
     });
-    audioService.setSrc(getStreamUrl(prevTrack.id));
+    const source = getStreamSource(prevTrack);
+    audioService.setSrc(source.url, { offsetSeek: source.offsetSeek });
     audioService.play();
   },
   
@@ -181,7 +182,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     });
     
     if (track) {
-      audioService.setSrc(getStreamUrl(track.id));
+      const source = getStreamSource(track);
+      audioService.setSrc(source.url, { offsetSeek: source.offsetSeek });
     }
   },
   

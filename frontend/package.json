@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "test:seek": "node --experimental-strip-types --test tests/streamSeek.test.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
