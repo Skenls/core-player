@@ -74,6 +74,7 @@ async def stream_audio(
     request: Request,
     format: str | None = Query(default=None),
     maxBitRate: int | None = Query(default=None),
+    timeOffset: float | int | None = Query(default=None),
     estimateContentLength: bool = Query(default=False),
     user: User = Depends(get_current_user),
     client: SubsonicClient = Depends(get_subsonic_client)
@@ -87,6 +88,9 @@ async def stream_audio(
     params = {"id": track_id}
     if format and format != "raw":
         params["format"] = format
+
+    if timeOffset is not None:
+        params["timeOffset"] = str(timeOffset)
 
     # For lossless FLAC, set maxBitRate to 0 (unlimited)
     # to prevent Navidrome from capping at default player bitrate (e.g. 256kbps).
