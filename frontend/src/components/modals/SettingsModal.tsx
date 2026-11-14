@@ -8,6 +8,8 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
+import { synapseApi } from '@/api/synapse';
+import { useSynapseStore } from '@/store/synapseStore';
 import { axiosClient } from '@/api/client';
 
 type SettingsTab = 'appearance' | 'audio' | 'users';
@@ -27,7 +29,9 @@ export function SettingsModal() {
     setBackgroundDim,
     setAudioCodec,
     nowPlayingBackground,
-    setNowPlayingBackground
+    setNowPlayingBackground,
+    continuePlayback,
+    setContinuePlayback
   } = useUIStore();
   
   const { user } = useSessionStore();
@@ -44,6 +48,19 @@ export function SettingsModal() {
   
   const queryClient = useQueryClient();
   
+  const resetSynapse = useMutation({
+    mutationFn: async () => {
+      useSynapseStore.getState().setProfileResetting(true);
+      useSynapseStore.getState().resetLocalProfile();
+      await synapseApi.reset();
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['synapse'] });
+      useSynapseStore.getState().setNotice('Профиль Synapse сброшен. Избранное сохранено.');
+    },
+    onSettled: () => useSynapseStore.getState().setProfileResetting(false)
+  });
+
   // Admin queries
   const { data: usersList, isLoading: isUsersLoading } = useQuery({
     queryKey: ['admin', 'users'],
@@ -375,6 +392,29 @@ export function SettingsModal() {
               {/* TAB: AUDIO */}
               {activeTab === 'audio' && (
                 <div className="space-y-4">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <label htmlFor="continue-playback" className="text-sm font-medium text-white">Продолжать воспроизведение</label>
+                        <p className="text-xs text-white/60 mt-1">Synapse добавит 15 треков, когда закончится очередь.</p>
+                      </div>
+                      <input id="continue-playback" type="checkbox" role="switch" checked={continuePlayback}
+                        onChange={event => setContinuePlayback(event.target.checked)}
+                        className="h-5 w-5 accent-blue-500" />
+                    </div>
+                    <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4">
+                      <div>
+                        <p className="text-sm text-white">Профиль Synapse</p>
+                        <p className="text-xs text-white/60 mt-1">Сбросить обучение и историю рекомендаций. Избранное сохранится.</p>
+                      </div>
+                      <button type="button" disabled={resetSynapse.isPending}
+                        onClick={() => { if (confirm('Сбросить обучение Synapse? Избранное сохранится.')) resetSynapse.mutate(); }}
+                        className="min-h-11 shrink-0 rounded-lg bg-white/10 px-3 text-sm text-white hover:bg-white/15 disabled:opacity-50">
+                        {resetSynapse.isPending ? 'Сброс…' : 'Сбросить Synapse'}
+                      </button>
+                    </div>
+                    {resetSynapse.isError && <p role="alert" className="text-sm text-red-300">Не удалось сбросить Synapse. Попробуйте ещё раз.</p>}
+                  </div>
                   <div className="space-y-1">
                     <h3 className="text-sm font-medium text-white">Формат транскодирования аудио</h3>
                     <p className="text-xs text-white/50">

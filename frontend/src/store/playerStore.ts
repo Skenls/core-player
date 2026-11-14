@@ -15,6 +15,9 @@ interface PlayerState {
   queue: Track[];
   queueIndex: number;
   originalQueue: Track[];
+  queueEnded: boolean;
+  queueVersion: number;
+  playbackId: number;
   
   shuffle: boolean;
   repeat: RepeatMode;
@@ -32,6 +35,7 @@ interface PlayerState {
   
   setQueue: (tracks: Track[], startIndex?: number) => void;
   addToQueue: (track: Track) => void;
+  appendToQueue: (tracks: Track[]) => void;
   playNext: (track: Track) => void;
   removeFromQueue: (index: number) => void;
   reorderQueue: (fromIndex: number, toIndex: number) => void;
@@ -61,6 +65,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   queue: [],
   queueIndex: -1,
   originalQueue: [],
+  queueEnded: false,
+  queueVersion: 0,
+  playbackId: 0,
   shuffle: false,
   repeat: 'off',
 
@@ -68,6 +75,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({
       currentTrack: track,
       duration: track.duration || 0,
+      queueEnded: false,
+      queueVersion: get().queueVersion + 1,
+      playbackId: get().playbackId + 1,
       currentTime: 0
     });
     const source = getStreamSource(track);
@@ -85,7 +95,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   
   play: () => {
-    set({ isPlaying: true });
+    set({ isPlaying: true, queueEnded: false });
     audioService.play().catch(() => {
       // Error already handled in audioService
     });
@@ -122,7 +132,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (repeat === 'one') {
       audioService.seek(0);
       audioService.play();
-      set({ currentTime: 0 });
+      set({ currentTime: 0, queueEnded: false, playbackId: get().playbackId + 1 });
       return;
     }
     
@@ -132,7 +142,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (repeat === 'all') {
         nextIndex = 0;
       } else {
-        set({ isPlaying: false });
+        set({ isPlaying: false, queueEnded: queue.length > 0 });
         audioService.pause();
         return;
       }
@@ -142,7 +152,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({
       queueIndex: nextIndex,
       currentTrack: nextTrack,
-      currentTime: 0
+      currentTime: 0,
+      queueEnded: false,
+      playbackId: get().playbackId + 1
     });
     const source = getStreamSource(nextTrack);
     audioService.setSrc(source.url, { offsetSeek: source.offsetSeek });
@@ -164,7 +176,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({
       queueIndex: prevIndex,
       currentTrack: prevTrack,
-      currentTime: 0
+      currentTime: 0,
+      queueEnded: false,
+      playbackId: get().playbackId + 1
     });
     const source = getStreamSource(prevTrack);
     audioService.setSrc(source.url, { offsetSeek: source.offsetSeek });
@@ -178,7 +192,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       originalQueue: tracks,
       queueIndex: startIndex,
       currentTrack: track || null,
-      currentTime: 0
+      currentTime: 0,
+      queueEnded: false,
+      queueVersion: get().queueVersion + 1,
+      playbackId: get().playbackId + 1
     });
     
     if (track) {
@@ -189,15 +206,44 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   
   addToQueue: (track) => {
     set((state) => ({
-      queue: [...state.queue, track]
+      queue: [...state.queue, track],
+      originalQueue: [...state.originalQueue, track],
+      queueEnded: false,
+      queueVersion: state.queueVersion + 1
     }));
   },
   
+  appendToQueue: (tracks) => {
+    if (!tracks.length) return;
+    const state = get();
+    const existing = new Set(state.queue.map(track => track.id));
+    const added = tracks.filter(track => {
+      if (existing.has(track.id)) return false;
+      existing.add(track.id);
+      return true;
+    });
+    if (!added.length) return;
+    set({
+      queue: [...state.queue, ...added],
+      originalQueue: [...state.originalQueue, ...added],
+      queueVersion: state.queueVersion + 1,
+      queueEnded: false
+    });
+    if (state.queueEnded) {
+      const track = added[0];
+      set({ currentTrack: track, queueIndex: state.queue.length, currentTime: 0,
+        duration: track.duration || 0, playbackId: get().playbackId + 1 });
+      const source = getStreamSource(track);
+      audioService.setSrc(source.url, { offsetSeek: source.offsetSeek });
+      get().play();
+    }
+  },
+
   playNext: (track) => {
     set((state) => {
       const newQueue = [...state.queue];
       newQueue.splice(state.queueIndex + 1, 0, track);
-      return { queue: newQueue };
+      return { queue: newQueue, queueEnded: false, queueVersion: state.queueVersion + 1 };
     });
   },
   
@@ -207,7 +253,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const newIndex = index < state.queueIndex ? state.queueIndex - 1 : state.queueIndex;
       return {
         queue: newQueue,
-        queueIndex: newIndex
+        queueIndex: newIndex,
+        queueEnded: false,
+        queueVersion: state.queueVersion + 1
       };
     });
   },
@@ -227,7 +275,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         newIndex++;
       }
       
-      return { queue: newQueue, queueIndex: newIndex };
+      return { queue: newQueue, queueIndex: newIndex, queueEnded: false, queueVersion: state.queueVersion + 1 };
     });
   },
   
@@ -236,6 +284,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (state.shuffle) {
         return {
           shuffle: false,
+          queueEnded: false,
+          queueVersion: state.queueVersion + 1,
           queue: state.originalQueue,
           queueIndex: state.originalQueue.findIndex(t => t.id === state.currentTrack?.id)
         };
@@ -249,6 +299,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         
         return {
           shuffle: true,
+          queueEnded: false,
+          queueVersion: state.queueVersion + 1,
           queue: newQueue,
           queueIndex: 0
         };

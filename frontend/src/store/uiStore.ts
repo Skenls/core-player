@@ -40,6 +40,7 @@ interface UIState {
   backgroundDim: number;
   audioCodec: AudioCodec;
   nowPlayingBackground: boolean;
+  continuePlayback: boolean;
   
   // Actions
   setActiveTab: (tab: ActiveTab) => void;
@@ -59,6 +60,7 @@ interface UIState {
   setBackgroundDim: (dim: number) => void;
   setAudioCodec: (codec: AudioCodec) => void;
   setNowPlayingBackground: (enabled: boolean) => void;
+  setContinuePlayback: (enabled: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -81,6 +83,7 @@ export const useUIStore = create<UIState>()(
       backgroundDim: 40,
       audioCodec: 'mp3',
       nowPlayingBackground: true,
+      continuePlayback: false,
       
       setActiveTab: (tab) => set((state) => ({ 
         activeTab: tab, 
@@ -141,7 +144,8 @@ export const useUIStore = create<UIState>()(
       setBackgroundBlur: (blur) => set({ backgroundBlur: blur }),
       setBackgroundDim: (dim) => set({ backgroundDim: dim }),
       setAudioCodec: (codec) => set({ audioCodec: codec }),
-      setNowPlayingBackground: (enabled) => set({ nowPlayingBackground: enabled })
+      setNowPlayingBackground: (enabled) => set({ nowPlayingBackground: enabled }),
+      setContinuePlayback: (enabled) => set({ continuePlayback: enabled })
     }),
     {
       name: 'core-ui-settings',
@@ -152,6 +156,7 @@ export const useUIStore = create<UIState>()(
         backgroundDim: state.backgroundDim,
         audioCodec: state.audioCodec,
         nowPlayingBackground: state.nowPlayingBackground,
+        continuePlayback: state.continuePlayback,
         isSidebarOpen: state.isSidebarOpen
       })
     }
