@@ -3,13 +3,17 @@ Core Player Backend - FastAPI application
 Music streaming server with Navidrome integration
 """
 
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from app.config import settings
 from app.database import init_db
 from app.routers import auth, library, stream, lyrics, admin
+from app.recommendation.router import router as synapse_router
+from app.recommendation.catalog import sync_loop
+from app.dependencies import get_subsonic_client
 
 
 @asynccontextmanager
@@ -32,7 +36,14 @@ async def lifespan(app: FastAPI):
     print(f"✓ Navidrome mode: {settings.navidrome_network_mode} ({settings.navidrome_url})")
     print(f"✓ Server starting on http://localhost:8000")
     
-    yield
+    synapse_client = await get_subsonic_client(app.state.httpx_client)
+    synapse_task = asyncio.create_task(sync_loop(synapse_client))
+    try:
+        yield
+    finally:
+        synapse_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await synapse_task
     
     # Shutdown: Close httpx client
     await app.state.httpx_client.aclose()
@@ -62,6 +73,7 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(library.router, prefix="/api")
 app.include_router(stream.router, prefix="/api")
 app.include_router(lyrics.router, prefix="/api")
+app.include_router(synapse_router, prefix="/api")
 
 
 @app.get("/")

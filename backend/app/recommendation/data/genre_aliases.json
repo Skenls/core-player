@@ -1,0 +1,730 @@
+{
+  "rock": {
+    "name": "Rock",
+    "family": "rock",
+    "aliases": [
+      "рок",
+      "рок музыка"
+    ]
+  },
+  "alternative-rock": {
+    "name": "Alternative rock",
+    "family": "rock",
+    "aliases": [
+      "alternative",
+      "альтернатива",
+      "альтернативный рок",
+      "alt rock"
+    ]
+  },
+  "indie-rock": {
+    "name": "Indie rock",
+    "family": "rock",
+    "aliases": [
+      "indie",
+      "инди",
+      "инди рок"
+    ]
+  },
+  "progressive-rock": {
+    "name": "Progressive rock",
+    "family": "rock",
+    "aliases": [
+      "prog rock",
+      "прогрессивный рок",
+      "прог рок"
+    ]
+  },
+  "psychedelic-rock": {
+    "name": "Psychedelic rock",
+    "family": "rock",
+    "aliases": [
+      "psychedelic",
+      "психоделический рок"
+    ]
+  },
+  "post-rock": {
+    "name": "Post rock",
+    "family": "rock",
+    "aliases": [
+      "postrock",
+      "пост рок"
+    ]
+  },
+  "punk-rock": {
+    "name": "Punk rock",
+    "family": "rock",
+    "aliases": [
+      "punk",
+      "панк",
+      "панк рок"
+    ]
+  },
+  "pop-punk": {
+    "name": "Pop punk",
+    "family": "rock",
+    "aliases": [
+      "поп панк",
+      "poppunk"
+    ]
+  },
+  "grunge": {
+    "name": "Grunge",
+    "family": "rock",
+    "aliases": [
+      "гранж",
+      "грандж"
+    ]
+  },
+  "hard-rock": {
+    "name": "Hard rock",
+    "family": "rock",
+    "aliases": [
+      "hardrock",
+      "хард рок"
+    ]
+  },
+  "shoegaze": {
+    "name": "Shoegaze",
+    "family": "rock",
+    "aliases": [
+      "шугейз",
+      "shoegazing"
+    ]
+  },
+  "new-wave": {
+    "name": "New wave",
+    "family": "rock",
+    "aliases": [
+      "нью вейв",
+      "новая волна"
+    ]
+  },
+  "post-punk": {
+    "name": "Post punk",
+    "family": "rock",
+    "aliases": [
+      "пост панк",
+      "postpunk"
+    ]
+  },
+  "britpop": {
+    "name": "Britpop",
+    "family": "rock",
+    "aliases": [
+      "брит поп",
+      "бритпоп"
+    ]
+  },
+  "blues-rock": {
+    "name": "Blues rock",
+    "family": "rock",
+    "aliases": [
+      "блюз рок",
+      "bluesrock"
+    ]
+  },
+  "metal": {
+    "name": "Metal",
+    "family": "metal",
+    "aliases": [
+      "метал",
+      "металл",
+      "heavy metal",
+      "хеви метал"
+    ]
+  },
+  "black-metal": {
+    "name": "Black metal",
+    "family": "metal",
+    "aliases": [
+      "блэк метал",
+      "blackmetal"
+    ]
+  },
+  "death-metal": {
+    "name": "Death metal",
+    "family": "metal",
+    "aliases": [
+      "дэт метал",
+      "deathmetal"
+    ]
+  },
+  "doom-metal": {
+    "name": "Doom metal",
+    "family": "metal",
+    "aliases": [
+      "дум метал",
+      "doommetal"
+    ]
+  },
+  "thrash-metal": {
+    "name": "Thrash metal",
+    "family": "metal",
+    "aliases": [
+      "трэш метал",
+      "thrash"
+    ]
+  },
+  "power-metal": {
+    "name": "Power metal",
+    "family": "metal",
+    "aliases": [
+      "пауэр метал",
+      "powermetal"
+    ]
+  },
+  "folk-metal": {
+    "name": "Folk metal",
+    "family": "metal",
+    "aliases": [
+      "фолк метал",
+      "folkmetal"
+    ]
+  },
+  "metalcore": {
+    "name": "Metalcore",
+    "family": "metal",
+    "aliases": [
+      "металкор",
+      "metal core"
+    ]
+  },
+  "symphonic-metal": {
+    "name": "Symphonic metal",
+    "family": "metal",
+    "aliases": [
+      "симфонический метал",
+      "symphonic"
+    ]
+  },
+  "nu-metal": {
+    "name": "Nu metal",
+    "family": "metal",
+    "aliases": [
+      "ню метал",
+      "numetal"
+    ]
+  },
+  "progressive-metal": {
+    "name": "Progressive metal",
+    "family": "metal",
+    "aliases": [
+      "прогрессивный метал",
+      "prog metal"
+    ]
+  },
+  "electronic": {
+    "name": "Electronic",
+    "family": "electronic",
+    "aliases": [
+      "электроника",
+      "электронная",
+      "electronica"
+    ]
+  },
+  "house": {
+    "name": "House",
+    "family": "electronic",
+    "aliases": [
+      "хаус",
+      "house music"
+    ]
+  },
+  "deep-house": {
+    "name": "Deep house",
+    "family": "electronic",
+    "aliases": [
+      "дип хаус",
+      "deephouse"
+    ]
+  },
+  "tech-house": {
+    "name": "Tech house",
+    "family": "electronic",
+    "aliases": [
+      "тек хаус",
+      "techhouse"
+    ]
+  },
+  "techno": {
+    "name": "Techno",
+    "family": "electronic",
+    "aliases": [
+      "техно",
+      "detroit techno"
+    ]
+  },
+  "trance": {
+    "name": "Trance",
+    "family": "electronic",
+    "aliases": [
+      "транс",
+      "uplifting trance"
+    ]
+  },
+  "psytrance": {
+    "name": "Psytrance",
+    "family": "electronic",
+    "aliases": [
+      "пси транс",
+      "psy trance"
+    ]
+  },
+  "drum-and-bass": {
+    "name": "Drum & Bass",
+    "family": "electronic",
+    "aliases": [
+      "dnb",
+      "d&b",
+      "драм-н-бейс",
+      "drum n bass",
+      "drum and bass",
+      "драм энд бейс"
+    ]
+  },
+  "dubstep": {
+    "name": "Dubstep",
+    "family": "electronic",
+    "aliases": [
+      "дабстеп",
+      "dub step"
+    ]
+  },
+  "idm": {
+    "name": "IDM",
+    "family": "electronic",
+    "aliases": [
+      "intelligent dance music",
+      "интеллектуальная электроника"
+    ]
+  },
+  "edm": {
+    "name": "EDM",
+    "family": "electronic",
+    "aliases": [
+      "electronic dance music",
+      "танцевальная электроника"
+    ]
+  },
+  "ambient": {
+    "name": "Ambient",
+    "family": "electronic",
+    "aliases": [
+      "эмбиент",
+      "амбиент"
+    ]
+  },
+  "downtempo": {
+    "name": "Downtempo",
+    "family": "electronic",
+    "aliases": [
+      "даунтемпо",
+      "down tempo"
+    ]
+  },
+  "trip-hop": {
+    "name": "Trip hop",
+    "family": "electronic",
+    "aliases": [
+      "трип хоп",
+      "triphop"
+    ]
+  },
+  "breakbeat": {
+    "name": "Breakbeat",
+    "family": "electronic",
+    "aliases": [
+      "брейкбит",
+      "break beat"
+    ]
+  },
+  "jungle": {
+    "name": "Jungle",
+    "family": "electronic",
+    "aliases": [
+      "джангл",
+      "jungle music"
+    ]
+  },
+  "synthwave": {
+    "name": "Synthwave",
+    "family": "electronic",
+    "aliases": [
+      "синтвейв",
+      "ретровейв",
+      "retrowave"
+    ]
+  },
+  "industrial": {
+    "name": "Industrial",
+    "family": "electronic",
+    "aliases": [
+      "индастриал",
+      "industrial music"
+    ]
+  },
+  "electro": {
+    "name": "Electro",
+    "family": "electronic",
+    "aliases": [
+      "электро",
+      "electrofunk"
+    ]
+  },
+  "garage": {
+    "name": "UK garage",
+    "family": "electronic",
+    "aliases": [
+      "ukg",
+      "юкей гэридж"
+    ]
+  },
+  "hardstyle": {
+    "name": "Hardstyle",
+    "family": "electronic",
+    "aliases": [
+      "хардстайл",
+      "hard style"
+    ]
+  },
+  "hip-hop": {
+    "name": "Hip hop",
+    "family": "hip-hop",
+    "aliases": [
+      "hh",
+      "hiphop",
+      "хип-хоп",
+      "хип хоп"
+    ]
+  },
+  "rap": {
+    "name": "Rap",
+    "family": "hip-hop",
+    "aliases": [
+      "рэп",
+      "реп",
+      "rap music"
+    ]
+  },
+  "trap": {
+    "name": "Trap",
+    "family": "hip-hop",
+    "aliases": [
+      "трэп",
+      "треп"
+    ]
+  },
+  "lo-fi": {
+    "name": "Lo-fi",
+    "family": "hip-hop",
+    "aliases": [
+      "lofi",
+      "лоуфай",
+      "лоу фай",
+      "lo fi hip hop"
+    ]
+  },
+  "boom-bap": {
+    "name": "Boom bap",
+    "family": "hip-hop",
+    "aliases": [
+      "бум бэп",
+      "boombap"
+    ]
+  },
+  "drill": {
+    "name": "Drill",
+    "family": "hip-hop",
+    "aliases": [
+      "дрилл",
+      "uk drill"
+    ]
+  },
+  "rnb": {
+    "name": "R&B",
+    "family": "rnb",
+    "aliases": [
+      "r&b",
+      "r’n’b",
+      "r n b",
+      "ритм-н-блюз",
+      "rhythm and blues"
+    ]
+  },
+  "soul": {
+    "name": "Soul",
+    "family": "rnb",
+    "aliases": [
+      "соул",
+      "soul music"
+    ]
+  },
+  "neo-soul": {
+    "name": "Neo soul",
+    "family": "rnb",
+    "aliases": [
+      "нео соул",
+      "neosoul"
+    ]
+  },
+  "funk": {
+    "name": "Funk",
+    "family": "rnb",
+    "aliases": [
+      "фанк",
+      "funk music"
+    ]
+  },
+  "jazz": {
+    "name": "Jazz",
+    "family": "jazz",
+    "aliases": [
+      "джаз",
+      "jazz music"
+    ]
+  },
+  "smooth-jazz": {
+    "name": "Smooth jazz",
+    "family": "jazz",
+    "aliases": [
+      "смут джаз",
+      "smoothjazz"
+    ]
+  },
+  "bebop": {
+    "name": "Bebop",
+    "family": "jazz",
+    "aliases": [
+      "бибоп",
+      "be bop"
+    ]
+  },
+  "fusion": {
+    "name": "Jazz fusion",
+    "family": "jazz",
+    "aliases": [
+      "фьюжн",
+      "джаз рок",
+      "jazz rock"
+    ]
+  },
+  "swing": {
+    "name": "Swing",
+    "family": "jazz",
+    "aliases": [
+      "свинг",
+      "swing jazz"
+    ]
+  },
+  "classical": {
+    "name": "Classical",
+    "family": "classical",
+    "aliases": [
+      "классика",
+      "классическая",
+      "классическая музыка"
+    ]
+  },
+  "baroque": {
+    "name": "Baroque",
+    "family": "classical",
+    "aliases": [
+      "барокко",
+      "baroque music"
+    ]
+  },
+  "opera": {
+    "name": "Opera",
+    "family": "classical",
+    "aliases": [
+      "опера",
+      "operatic"
+    ]
+  },
+  "chamber": {
+    "name": "Chamber music",
+    "family": "classical",
+    "aliases": [
+      "камерная",
+      "камерная музыка"
+    ]
+  },
+  "orchestral": {
+    "name": "Orchestral",
+    "family": "classical",
+    "aliases": [
+      "оркестровая",
+      "symphony",
+      "симфония"
+    ]
+  },
+  "piano": {
+    "name": "Piano",
+    "family": "classical",
+    "aliases": [
+      "фортепиано",
+      "пианино",
+      "solo piano"
+    ]
+  },
+  "contemporary-classical": {
+    "name": "Contemporary classical",
+    "family": "classical",
+    "aliases": [
+      "неоклассика",
+      "neoclassical"
+    ]
+  },
+  "pop": {
+    "name": "Pop",
+    "family": "pop",
+    "aliases": [
+      "поп",
+      "поп музыка",
+      "попса"
+    ]
+  },
+  "synthpop": {
+    "name": "Synthpop",
+    "family": "pop",
+    "aliases": [
+      "синтипоп",
+      "synth pop"
+    ]
+  },
+  "dance-pop": {
+    "name": "Dance pop",
+    "family": "pop",
+    "aliases": [
+      "dancepop",
+      "танцевальный поп"
+    ]
+  },
+  "k-pop": {
+    "name": "K-pop",
+    "family": "pop",
+    "aliases": [
+      "kpop",
+      "кей поп"
+    ]
+  },
+  "j-pop": {
+    "name": "J-pop",
+    "family": "pop",
+    "aliases": [
+      "jpop",
+      "джей поп"
+    ]
+  },
+  "disco": {
+    "name": "Disco",
+    "family": "pop",
+    "aliases": [
+      "диско",
+      "euro disco"
+    ]
+  },
+  "folk": {
+    "name": "Folk",
+    "family": "folk",
+    "aliases": [
+      "фолк",
+      "народная",
+      "народная музыка"
+    ]
+  },
+  "folk-rock": {
+    "name": "Folk rock",
+    "family": "folk",
+    "aliases": [
+      "фолк рок",
+      "folkrock"
+    ]
+  },
+  "country": {
+    "name": "Country",
+    "family": "folk",
+    "aliases": [
+      "кантри",
+      "country music"
+    ]
+  },
+  "world": {
+    "name": "World",
+    "family": "folk",
+    "aliases": [
+      "этно",
+      "этническая",
+      "world music"
+    ]
+  },
+  "chanson": {
+    "name": "Chanson",
+    "family": "folk",
+    "aliases": [
+      "shanson",
+      "шансон",
+      "chanson russe"
+    ]
+  },
+  "blues": {
+    "name": "Blues",
+    "family": "blues",
+    "aliases": [
+      "блюз",
+      "blues music"
+    ]
+  },
+  "reggae": {
+    "name": "Reggae",
+    "family": "reggae",
+    "aliases": [
+      "регги",
+      "реггей"
+    ]
+  },
+  "dub": {
+    "name": "Dub",
+    "family": "reggae",
+    "aliases": [
+      "даб",
+      "dub music"
+    ]
+  },
+  "ska": {
+    "name": "Ska",
+    "family": "reggae",
+    "aliases": [
+      "ска",
+      "ska punk"
+    ]
+  },
+  "soundtrack": {
+    "name": "Soundtrack",
+    "family": "other",
+    "aliases": [
+      "саундтрек",
+      "ost",
+      "score",
+      "film score"
+    ]
+  },
+  "new-age": {
+    "name": "New age",
+    "family": "other",
+    "aliases": [
+      "нью эйдж",
+      "newage"
+    ]
+  },
+  "spoken-word": {
+    "name": "Spoken word",
+    "family": "other",
+    "aliases": [
+      "разговорный",
+      "аудиокнига",
+      "audiobook"
+    ]
+  }
+}

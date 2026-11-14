@@ -303,3 +303,67 @@ Located in [`backend/app/lyrics.py`](file:///Users/skenls/webplayer/backend/app/
 | **`extract_artist_candidates`** | [`lyrics.py`](file:///Users/skenls/webplayer/backend/app/lyrics.py#L18) | `(artist_raw: str) -> list[str]` | Cleans separators (`•`, `·`, `|`) and builds permutation candidates for lyrics queries. |
 | **`verify_password`** | [`auth.py`](file:///Users/skenls/webplayer/backend/app/auth.py#L23) | `(plain_password: str, hashed_password: str) -> bool` | Validates plaintext passwords against stored bcrypt hashes. |
 | **`get_current_user`** | [`dependencies.py`](file:///Users/skenls/webplayer/backend/app/dependencies.py#L20) | `(request, db) -> User` | Validates session via Cookie, Query, or Authorization header; prunes expired sessions. |
+
+## Synapse recommendations
+
+Synapse adds local recommendation tables without changing existing library,
+favorites, authentication, or audio streaming endpoints. All `/api/synapse`
+endpoints use the existing authenticated app user:
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /api/synapse/mix` | New mix, `familiarity=familiar,unfamiliar`, optional `mood`, `limit=20` (1–50). Legacy comma-separated exclusions support up to 1,000 IDs. |
+| `POST /api/synapse/mix` | Same mix behavior; JSON `familiarity`, `mood`, `limit`, `exclude_track_ids`. Used for continuation of large queues; up to 100,000 exclusions. |
+| `POST /api/synapse/sessions/{mix_id}/refill` | Append candidates excluding all earlier session exposures and the supplied queue IDs; default limit 15. |
+| `POST /api/synapse/events` | `{events: [...]}`; up to 100 UUID-identified events per batch; returns 204. |
+| `GET /api/synapse/status` | Local catalog readiness/progress, last completed sync, event count, learned artists/genres and exploration ratio. |
+| `DELETE /api/synapse/profile` | Delete only the current user's learned state, moods, cooldowns, sessions and events; preserve favorites. |
+
+The lifespan owns one sequential `search3.view` catalog writer, paging 500 songs,
+starting when empty/stale and repeating every six hours. Pages commit separately;
+missing tracks become inactive only after a successful complete scan. A failed
+refresh keeps the last completed catalog usable. Genre-alias version changes
+also re-resolve the stored raw metadata while Navidrome is unavailable. Sync
+failures expose a generic state without upstream authentication details.
+
+`app/recommendation/` separates catalog/artist/genre normalization, ranking,
+learning/signals, API schemas and orchestration. Seeds in its `data/` directory
+cover common EN/RU tags, abbreviations and mood priors. Unknown genres remain
+stored and learnable. Canonical artists retain Navidrome identities, including
+same-name artists with different IDs and fallback-name identities discovered
+before a remote ID becomes available.
+
+Ranking reads only SQLite. It builds bounded candidates from favorites, familiar
+artists, collaboration links, top genres, learned albums/families/eras, recent
+arrivals and wildcard discovery. Genre/family/artist samples are bounded before
+joining wide catalog rows; at most 1,000 candidates are hydrated. The model uses
+stored per-exposure feature vectors, decaying entity affinity, independent mood
+affinity, logistic updates, UCB exploration and proportional genre-family quotas.
+Selection enforces artist/album/family caps before relaxing them to fill a small
+eligible pool. Familiarity and explicit-favorite exclusions are never relaxed.
+Recency is relaxed before cooldowns. While the first catalog is incomplete, the
+fallback uses indexed favorite candidates only where the selected filters permit.
+
+Only tracks with an authenticated Synapse exposure may send learning events.
+`start` is logged; `complete` and `skip` update actual listening statistics and
+signals; `favorite` requires an existing exact favorite anchor and trains mood
+and ranking without adding a play or folding favorites into general taste.
+UUID insertion, user/session/track validation and updates occur in one batch
+transaction. Duplicate retries do not count twice. Strong skip cooldowns use the
+artist's history before the current skip; repeated distinct track skips escalate
+the primary artist's cooldown. Exploration compares completion rates across
+familiar/unfamiliar pools, so unequal traffic volume alone cannot change it.
+
+Verification:
+
+```sh
+PYTHONPATH=backend backend/venv/bin/python -m unittest discover -s backend/tests
+PYTHONPATH=backend backend/venv/bin/python backend/tests/benchmark_synapse.py
+```
+
+The benchmark creates a separate in-memory 100k-track SQLite catalog, tests six
+20-track mixes with a five-cluster profile and checks unique results. A local
+measurement during implementation gave a warm median of approximately 181 ms
+(first mix approximately 219 ms). These are synthetic measurements; real catalog
+metadata, disk latency and concurrent activity can change them. The feature was
+not verified against a live Navidrome library during implementation.

@@ -1,0 +1,30 @@
+{
+  "sad": {
+    "ambient": 0.85,
+    "blues": 0.85,
+    "classical": 0.65,
+    "doom-metal": 0.8,
+    "trip-hop": 0.75,
+    "soul": 0.7,
+    "post-rock": 0.8
+  },
+  "productive": {
+    "ambient": 0.9,
+    "classical": 0.85,
+    "baroque": 0.85,
+    "lo-fi": 0.9,
+    "electronic": 0.65,
+    "idm": 0.8,
+    "piano": 0.8
+  },
+  "upbeat": {
+    "pop": 0.8,
+    "electronic": 0.8,
+    "house": 0.9,
+    "drum-and-bass": 0.85,
+    "funk": 0.9,
+    "disco": 0.9,
+    "punk-rock": 0.8,
+    "metal": 0.7
+  }
+}

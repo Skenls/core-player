@@ -189,3 +189,38 @@ The primary system calls and internal communication contracts between Core Playe
 | **`fetch_lrclib_lyrics()`** | [`lyrics.py`](file:///Users/skenls/webplayer/backend/app/lyrics.py#L81) | LRCLIB Cloud API | HTTPS GET (HTTPX) | Performs multi-candidate search for synchronized LRC timestamps with retry and backoff. |
 | **`seek()`** | [`audioService.ts`](file:///Users/skenls/webplayer/frontend/src/lib/audioService.ts#L50) | `HTMLAudioElement` | DOM API / URL mutation | Decides between native browser `currentTime` seek or URL reload with `?timeOffset=...`. |
 | **`updateProgress()`** | [`useAudioEngine.ts`](file:///Users/skenls/webplayer/frontend/src/hooks/useAudioEngine.ts#L30) | [`playerStore.ts`](file:///Users/skenls/webplayer/frontend/src/store/playerStore.ts#L42) | Zustand Store Dispatch | Invoked on HTML5 `timeupdate` events to broadcast real-time audio progress to UI and lyrics. |
+
+## Synapse data flow
+
+Synapse is an additive subsystem under `backend/app/recommendation/`. Its tables
+are registered before the existing `Base.metadata.create_all`; existing table
+schemas and playback APIs are unchanged.
+
+- Catalog: `catalog_tracks`, `catalog_artists`, `catalog_albums`,
+  `catalog_track_artists`, `catalog_artist_edges`, `catalog_genre_families`,
+  `catalog_genres`, `catalog_genre_aliases`, `catalog_track_genres`, `catalog_meta`.
+- Per-user model: `user_taste`, `user_track_state`, `user_mood_taste`,
+  `user_cooldowns`, `user_recommendation_state`.
+- Exposure and feedback: `synapse_sessions`, `synapse_session_tracks`,
+  `listening_events`.
+
+The application lifespan starts/cancels the six-hour catalog sync task. It uses
+the existing system Subsonic client for metadata only. Recommendation requests
+read the local snapshot and current user's favorites; they never call Navidrome.
+Every returned track keeps its Subsonic fields and adds a `synapse` object with
+session, reason, channel and score. The existing stream path consumes the same
+track ID as before.
+
+Web Home presents Synapse above the existing library sections. Starting its mix
+sets the existing player queue. Global telemetry learns only from metadata-tagged
+tracks; regular album, playlist and search listening does not train the model.
+Optional continuation appends tagged recommendations only after a genuine
+repeat-off queue end and rejects responses for a replaced queue. Favorites remain
+stable, separate anchors rather than decayed learned events.
+
+Rollback of the implementation is a Git revert of the feature commits on
+`feat/synapse`; the pre-feature code and documentation checkpoint is `7217532`.
+New recommendation tables may remain dormant after code rollback, so reverting
+code requires no destructive database migration. Back up the SQLite database
+before a deployment if an exact data-state rollback is required; a Git revert
+alone does not revert learned data.

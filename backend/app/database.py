@@ -37,6 +37,7 @@ async def init_db():
     """Initialize database tables and bootstrap initial admin user if none exist"""
     # Import models so Base.metadata knows about them
     import app.models as models  # noqa
+    import app.recommendation.models  # noqa
     
     async with engine.begin() as conn:
         if "sqlite" in settings.database_url:
