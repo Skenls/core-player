@@ -12,7 +12,7 @@ export function useSynapseTelemetry() {
   const profileVersion = useSynapseStore(state => state.profileVersion);
   const resetting = useSynapseStore(state => state.profileResetting);
   const previousVersion = useRef(profileVersion);
-  const ignoredSession = useRef<string | null>(null);
+  const ignoredSessions = useRef(new Set<string>());
   const mountedUser = useRef<string | null>(null);
 
   useEffect(() => {
@@ -21,13 +21,17 @@ export function useSynapseTelemetry() {
     const audio = audioService.getAudio();
     if (mountedUser.current !== userId) {
       // A queue can outlive logout; only fresh mixes may train the next account.
-      const track = usePlayerStore.getState().currentTrack;
-      ignoredSession.current = isSynapseTrack(track) ? track.synapse.session_id : null;
+      const state = usePlayerStore.getState();
+      for (const track of [...(state.queue || []), state.currentTrack]) {
+        if (isSynapseTrack(track)) ignoredSessions.current.add(track.synapse.session_id);
+      }
       mountedUser.current = userId;
     }
     if (previousVersion.current !== profileVersion) {
-      const track = usePlayerStore.getState().currentTrack;
-      ignoredSession.current = isSynapseTrack(track) ? track.synapse.session_id : null;
+      const state = usePlayerStore.getState();
+      for (const track of [...(state.queue || []), state.currentTrack]) {
+        if (isSynapseTrack(track)) ignoredSessions.current.add(track.synapse.session_id);
+      }
       previousVersion.current = profileVersion;
     }
     let pending: SynapseEvent[] = [];
@@ -78,7 +82,7 @@ export function useSynapseTelemetry() {
     });
     const begin = () => {
       const track = usePlayerStore.getState().currentTrack;
-      if (active || !isSynapseTrack(track) || track.synapse.session_id === ignoredSession.current) return;
+      if (active || !isSynapseTrack(track) || ignoredSessions.current.has(track.synapse.session_id)) return;
       active = { track, played: 0, position: audioService.getCurrentTime(), sampledAt: performance.now() };
       enqueue(eventFor(track, 'start', 0, 0, { played_seconds: 0 }));
     };
