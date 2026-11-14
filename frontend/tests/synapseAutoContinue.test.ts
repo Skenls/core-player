@@ -98,3 +98,14 @@ test('a queue changed during status lookup does not even request a mix', async (
   assert.equal(ctx.appended.length, 0);
   ctx.cleanup();
 });
+
+test('a 1500-track queue passes every exclusion to the mix API and continues', async () => {
+  const ctx = setup();
+  ctx.usePlayerStore.queue = Array.from({ length: 1500 }, (_, index) => ({ id: `queued-${index}` }));
+  useSynapseAutoContinue();
+  await tick();
+  assert.deepEqual(ctx.mixCalls[0][2], ctx.usePlayerStore.queue.map(track => track.id));
+  assert.equal(ctx.mixCalls[0][2].length, 1500);
+  assert.deepEqual(ctx.appended, [tracks]);
+  ctx.cleanup();
+});
