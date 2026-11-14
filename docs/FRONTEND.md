@@ -273,3 +273,11 @@ An immersive, full-screen playback environment:
 | **`lyricsApi`** | `getLyrics` | `(trackId: string) => Promise<LyricsResponse>` | Retrieves synchronized LRC lyrics with dual-TTL caching. |
 | **`authApi`** | `login` | `(credentials) => Promise<User>` | Authenticates against `/api/auth/login` and sets session cookie. |
 | **`authApi`** | `logout` | `() => Promise<void>` | Clears session cookie and resets session store state. |
+
+## Synapse
+
+Home starts with the large `components/synapse/SynapseSection.tsx` panel; existing library sections follow it. Familiarity chips combine and moods toggle exclusively. Track rows display server reasons and start the entire Synapse mix at the selected index. CSS sphere/wave animations run while Synapse is playing, pause offscreen/in hidden tabs and obey `prefers-reduced-motion`.
+
+`api/synapse.ts`, `store/synapseStore.ts`, and `hooks/useSynapseMix.ts` own the authenticated mix and persisted filters. `AppShell` mounts telemetry and continuation once, with a global notification. Queue session metadata is additive: the stream URL, codec and seeking API are unchanged. `queueEnded` and a queue generation counter prevent stale auto-continue responses from replacing a newer queue. Continue playback defaults off in audio settings. Telemetry uses elapsed listening time rather than seek position, buffers UUID events per user and retries deliveries. Reset clears that user's learned profile while keeping favorites.
+
+See [SYNAPSE.md](SYNAPSE.md) for usage, rollback baseline and verification limits.

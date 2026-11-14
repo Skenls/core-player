@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Play, Music2, ListMusic, Loader2 } from 'lucide-react';
+import { SynapseSection } from '@/components/synapse/SynapseSection';
 import { AlbumGrid } from '@/components/library/AlbumGrid';
 import { AlbumCard } from '@/components/library/AlbumCard';
 import { useAlbums, useRandomTracks, useSearch, usePlaylists } from '@/hooks/useLibrary';
@@ -123,8 +124,9 @@ export function HomePage() {
 
   return (
     <div className="space-y-10">
+      {!searchQuery.trim() && <SynapseSection />}
       {/* Header and Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div id="home-library" className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-bold text-white mb-2">Главная</h1>
           <p className="text-white/50">Ваша музыкальная библиотека</p>
