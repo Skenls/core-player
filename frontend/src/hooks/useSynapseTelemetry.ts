@@ -49,6 +49,10 @@ export function useSynapseTelemetry() {
       pending = [...pending, event].slice(-200);
       persist();
     };
+    const permanentRejection = (error: unknown) => {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      return status === 404 || status === 422;
+    };
     const flush = async () => {
       if (sending || disposed || !pending.length || !navigator.onLine
         || useSessionStore.getState().user?.id !== userId) return;
@@ -60,8 +64,27 @@ export function useSynapseTelemetry() {
         const ids = new Set(batch.map(event => event.id));
         pending = pending.filter(event => !ids.has(event.id));
         persist();
-      } catch {
-        // Keep event UUIDs unchanged when retrying.
+      } catch (error) {
+        if (permanentRejection(error) && !disposed) {
+          // A reset in another tab can delete one session in an otherwise valid batch.
+          // Isolate permanent failures so they cannot block subsequent feedback.
+          const handled = new Set<string>();
+          for (const event of batch) {
+            if (disposed || useSessionStore.getState().user?.id !== userId) break;
+            try {
+              if (batch.length > 1) await synapseApi.events([event]);
+              handled.add(event.id);
+            } catch (individualError) {
+              if (permanentRejection(individualError)) handled.add(event.id);
+              // Transient failures retain their original UUID for the next retry.
+            }
+          }
+          if (!disposed) {
+            pending = pending.filter(event => !handled.has(event.id));
+            persist();
+          }
+        }
+        // Other failures retain the entire batch and its original UUIDs.
       } finally { sending = false; }
     };
     const sample = () => {
@@ -94,6 +117,14 @@ export function useSynapseTelemetry() {
       const feedback = classifyPlayback(played, track.duration);
       enqueue(eventFor(track, feedback.event_type, played, position,
         { played_seconds: played, skip_kind: feedback.skip_kind, ended }));
+      void flush();
+    };
+    const onFavorite = (event: Event) => {
+      const detail = (event as CustomEvent<{ trackId: string; userId: string }>).detail;
+      if (!active || detail?.trackId !== active.track.id || detail.userId !== userId
+        || useSessionStore.getState().user?.id !== userId) return;
+      sample();
+      enqueue(eventFor(active.track, 'favorite', active.played, active.position, { played_seconds: active.played }));
       void flush();
     };
     const onEnded = () => finalize(true);
@@ -132,6 +163,7 @@ export function useSynapseTelemetry() {
     audio.addEventListener('seeked', onSeeked);
     // Capture runs before the player's ended handler switches the source.
     audio.addEventListener('ended', onEnded, true);
+    window.addEventListener('synapse:favorite', onFavorite);
     window.addEventListener('pagehide', onHide);
     window.addEventListener('pageshow', onVisible);
     window.addEventListener('online', flush);
@@ -157,6 +189,7 @@ export function useSynapseTelemetry() {
       audio.removeEventListener('seeking', onProgress);
       audio.removeEventListener('seeked', onSeeked);
       audio.removeEventListener('ended', onEnded, true);
+      window.removeEventListener('synapse:favorite', onFavorite);
       window.removeEventListener('pagehide', onHide);
       window.removeEventListener('pageshow', onVisible);
       window.removeEventListener('online', flush);

@@ -32,7 +32,7 @@ export interface SynapseEvent {
   id: string;
   session_id: string;
   track_id: string;
-  event_type: 'start' | 'complete' | 'skip';
+  event_type: 'start' | 'complete' | 'skip' | 'favorite';
   position_seconds: number;
   duration_seconds: number;
   percent: number;

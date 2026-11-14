@@ -13,7 +13,7 @@ const bundle = await build({
       const context = 'const ctx = new Proxy({}, {get:(_,key)=>globalThis.__telemetryTest[key],set:(_,key,value)=>{globalThis.__telemetryTest[key]=value;return true;}});';
       const store = (name: string) => `${context} export const ${name} = Object.assign(fn=>fn(ctx.${name}), {getState:()=>ctx.${name}, subscribe:fn=>{ctx.listener=fn;return()=>{};}});`;
       if (args.path === 'react') return { contents: `${context} export const useRef=value=>({current:value}); export const useEffect=fn=>{ctx.cleanup=fn();};` };
-      if (args.path === '@/api/synapse') return { contents: `${context} export const synapseApi={events:async events=>{ctx.batches.push(structuredClone(events));}};` };
+      if (args.path === '@/api/synapse') return { contents: `${context} export const synapseApi={events:async events=>{ctx.batches.push(structuredClone(events));if(events.some(event=>event.session_id===ctx.rejectedSession))throw {response:{status:404}};if(ctx.transientFailure)throw {response:{status:503}};}};` };
       if (args.path === '@/lib/audioService') return { contents: `${context} export const audioService={getAudio:()=>ctx.audio,getCurrentTime:()=>ctx.position};` };
       return { contents: store(args.path.split('/').at(-1) === 'playerStore' ? 'usePlayerStore'
         : args.path.split('/').at(-1) === 'sessionStore' ? 'useSessionStore' : 'useSynapseStore') };
@@ -23,7 +23,7 @@ const bundle = await build({
 
 function setup() {
   const audio = Object.assign(new EventTarget(), { paused: true, ended: false, seeking: false });
-  const ctx = { audio, position: 0, now: 0, batches: [] as any[], cleanup: () => {}, listener: (_a: any, _b: any) => {},
+  const ctx = { rejectedSession: '', transientFailure: false, audio, position: 0, now: 0, batches: [] as any[], cleanup: () => {}, listener: (_a: any, _b: any) => {},
     useSessionStore: { user: { id: 'alice' } }, useSynapseStore: { profileVersion: 0 },
     usePlayerStore: { currentTrack: null as any, playbackId: 0, queueEnded: false } };
   Object.assign(globalThis, { __telemetryTest: ctx });
@@ -80,5 +80,57 @@ test('ordinary playback and a queue left by a previous account produce no events
   ctx.audio.dispatchEvent(new Event('playing'));
   ctx.audio.dispatchEvent(new Event('ended'));
   assert.equal(ctx.batches.length, 0);
+  ctx.cleanup();
+});
+
+const tick = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
+
+test('one deleted session cannot block valid events and retries keep their UUIDs', async () => {
+  const ctx = setup();
+  const stale = { id: 'stale-id', session_id: 'deleted' };
+  const valid = { id: 'valid-id', session_id: 'current' };
+  ctx.rejectedSession = 'deleted';
+  localStorage.setItem('core-synapse-events:alice', JSON.stringify([stale, valid]));
+  useSynapseTelemetry();
+  await tick();
+  assert.deepEqual(ctx.batches.map(batch => batch.map((event: any) => event.id)),
+    [['stale-id', 'valid-id'], ['stale-id'], ['valid-id']]);
+  assert.deepEqual(JSON.parse(localStorage.getItem('core-synapse-events:alice')!), []);
+  ctx.cleanup();
+
+  const transient = setup();
+  transient.transientFailure = true;
+  localStorage.setItem('core-synapse-events:alice', JSON.stringify([valid]));
+  useSynapseTelemetry();
+  await tick();
+  assert.deepEqual(JSON.parse(localStorage.getItem('core-synapse-events:alice')!), [valid]);
+  transient.transientFailure = false;
+  window.dispatchEvent(new Event('online'));
+  await tick();
+  assert.deepEqual(transient.batches.map(batch => batch[0].id), ['valid-id', 'valid-id']);
+  assert.deepEqual(JSON.parse(localStorage.getItem('core-synapse-events:alice')!), []);
+  transient.cleanup();
+});
+
+test('favorite feedback only trains the active Synapse track for the current user', async () => {
+  const ctx = setup();
+  useSynapseTelemetry();
+  const favorite = (trackId: string, userId = 'alice') => {
+    const event = Object.assign(new Event('synapse:favorite'), { detail: { trackId, userId } });
+    window.dispatchEvent(event);
+  };
+  ctx.usePlayerStore.currentTrack = { id: 'ordinary', duration: 200 };
+  ctx.audio.paused = false;
+  ctx.audio.dispatchEvent(new Event('playing'));
+  favorite('ordinary');
+  assert.equal(ctx.batches.length, 0);
+  ctx.usePlayerStore.currentTrack = track;
+  ctx.audio.dispatchEvent(new Event('playing'));
+  favorite('other');
+  favorite('one', 'bob');
+  assert.equal(ctx.batches.length, 0);
+  favorite('one');
+  await tick();
+  assert.deepEqual(ctx.batches.flat().map(event => event.event_type), ['start', 'favorite']);
   ctx.cleanup();
 });

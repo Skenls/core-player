@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
+import { useSessionStore } from '@/store/sessionStore';
 
 export function useFavoriteIds() {
   return useQuery({
@@ -30,6 +31,7 @@ export function useToggleFavorite() {
     mutationFn: ({ id, type }: { id: string; type: 'track' | 'album' }) =>
       api.library.toggleFavorite(id, type),
     onMutate: async ({ id, type }) => {
+      const synapseUserId = useSessionStore.getState().user?.id;
       await queryClient.cancelQueries({ queryKey: ['favorites', 'ids'] });
       const prevIds = queryClient.getQueryData<{ tracks: string[]; albums: string[] }>(['favorites', 'ids']);
 
@@ -46,7 +48,15 @@ export function useToggleFavorite() {
         });
       }
 
-      return { prevIds };
+      return { prevIds, synapseUserId };
+    },
+    onSuccess: (data, _vars, context) => {
+      if (data.starred && data.type === 'track' && context?.synapseUserId
+        && useSessionStore.getState().user?.id === context.synapseUserId) {
+        window.dispatchEvent(new CustomEvent('synapse:favorite', {
+          detail: { trackId: data.id, userId: context.synapseUserId }
+        }));
+      }
     },
     onError: (_err, _vars, context) => {
       if (context?.prevIds) {
