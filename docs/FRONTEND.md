@@ -280,4 +280,4 @@ Home starts with the large `components/synapse/SynapseSection.tsx` panel; existi
 
 `api/synapse.ts`, `store/synapseStore.ts`, and `hooks/useSynapseMix.ts` own the authenticated mix and persisted filters. `AppShell` mounts telemetry and continuation once, with a global notification. Queue session metadata is additive: the stream URL, codec and seeking API are unchanged. `queueEnded` and a queue generation counter prevent stale auto-continue responses from replacing a newer queue. Continue playback defaults off in audio settings. Telemetry uses elapsed listening time rather than seek position, buffers UUID events per user and retries deliveries. Reset clears that user's learned profile while keeping favorites.
 
-See [SYNAPSE.md](SYNAPSE.md) for usage, rollback baseline and verification limits.
+See [synapse-usage.md](synapse-usage.md) for usage, rollback baseline and verification limits.

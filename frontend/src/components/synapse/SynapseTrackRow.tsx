@@ -6,7 +6,7 @@ export function SynapseTrackRow({ track, index, active, playing, onPlay }: {
   track: SynapseTrack; index: number; active: boolean; playing: boolean; onPlay: () => void;
 }) {
   return <button type="button" className={`synapse-track ${active ? 'is-current' : ''}`} onClick={onPlay}
-    aria-label={`${active && playing ? 'Пауза' : 'Воспроизвести'}: ${track.title}, ${cleanArtistName(track.artist)}`} aria-current={active ? 'true' : undefined}>
+    aria-label={`${active && playing ? 'Пауза' : 'Воспроизвести'}: ${track.title}, ${cleanArtistName(track.artist)}. ${track.synapse.reason}`} aria-current={active ? 'true' : undefined}>
     <span className="synapse-track-number" aria-hidden="true">{active && playing ? <span className="synapse-equalizer"><i /><i /><i /></span> : String(index + 1).padStart(2, '0')}</span>
     <span className="synapse-track-cover">
       {track.coverArt ? <img src={`/api/stream/cover/${encodeURIComponent(track.coverArt)}?size=100`} loading="lazy" alt="" /> : <Music2 size={20} aria-hidden="true" />}

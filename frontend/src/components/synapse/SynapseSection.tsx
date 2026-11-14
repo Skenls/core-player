@@ -41,6 +41,7 @@ export function SynapseSection() {
     else if (tracks.length) playTrack(0);
   };
   const selected = filters.familiarity.length > 0;
+  const unavailable = data?.status === 'unavailable';
   const syncing = data?.status === 'syncing' || data?.status === 'learning';
 
   return <section ref={sectionRef} className={`synapse ${animating ? 'is-playing' : ''}`} aria-labelledby="synapse-title">
@@ -65,11 +66,11 @@ export function SynapseSection() {
         <div className="synapse-tracklist scrollbar-thin" aria-busy={isFetching}>
           {!selected ? <div className="synapse-empty"><Sparkles size={28} aria-hidden="true" /><h4>Какую музыку найдём?</h4><p>Выберите знакомое, открытия или избранное.</p></div>
             : error ? <div className="synapse-empty" role="status"><h4>Волна пока недоступна</h4><p>Не удалось загрузить подборку. Попробуйте обновить её.</p><button type="button" className="synapse-chip" onClick={() => void refetch()}>Попробовать снова</button></div>
-            : !tracks.length ? <div className="synapse-empty" role="status">{isFetching || syncing ? <Loader2 size={28} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Sparkles size={28} aria-hidden="true" />}<h4>{isFetching || syncing ? 'Знакомимся с вашей библиотекой' : 'Пока нет подходящих треков'}</h4><p>{isFetching || syncing ? 'Первая волна появится после синхронизации.' : 'Попробуйте другие фильтры или добавьте музыку в избранное.'}</p></div>
+            : !tracks.length ? <div className="synapse-empty" role="status">{isFetching || syncing ? <Loader2 size={28} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Sparkles size={28} aria-hidden="true" />}<h4>{isFetching || syncing ? 'Знакомимся с вашей библиотекой' : unavailable ? 'Библиотека пока недоступна' : 'Пока нет подходящих треков'}</h4><p>{isFetching || syncing ? 'Первая волна появится после синхронизации.' : unavailable ? 'Попробуйте обновить подборку позднее.' : 'Попробуйте другие фильтры или добавьте музыку в избранное.'}</p></div>
             : tracks.map((track, index) => <SynapseTrackRow key={`${track.synapse.session_id}-${track.id}`} track={track} index={index} active={index === currentInMix} playing={isPlaying} onPlay={() => playTrack(index)} />)}
         </div>
         {data?.hint && <p className="synapse-hint" role="status">{data.hint}</p>}
-        {syncing && tracks.length > 0 && <p className="synapse-hint">Библиотека синхронизируется. Пока звучит избранное.</p>}
+        {syncing && tracks.length > 0 && <p className="synapse-hint">Библиотека синхронизируется. Подборка пока ограничена.</p>}
         <div className="synapse-mix-footer"><span className="synapse-small-wave" aria-hidden="true"><i /><i /><i /><i /><i /></span><span>Учится на том, что вы слушаете здесь</span></div>
       </div>
     </div>
